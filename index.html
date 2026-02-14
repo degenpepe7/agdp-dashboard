@@ -800,7 +800,7 @@
         }
 
         // ========== STATE ==========
-        let A=[], S='revenue', currentUser=null, agentCache=new Map();
+        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20;
         const fa=`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2318181b'/><text y='62' x='50' text-anchor='middle' font-size='36' fill='%2352525b'>◆</text></svg>`;
 
         // ========== INIT ==========
@@ -808,7 +808,7 @@
             loadUser();
             ld();
             setInterval(ld,300000);
-            document.getElementById('q').addEventListener('input',render);
+            document.getElementById('q').addEventListener('input',()=>{visibleCount=20;render()});
             lR();
         });
 
@@ -985,7 +985,7 @@
         }
 
         // ========== SORT ==========
-        function ss(s){S=s;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));render()}
+        function ss(s){S=s;visibleCount=20;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));render()}
 
         // ========== RENDER AGENTS ==========
         function render(){
@@ -1002,7 +1002,9 @@
             const grid = document.getElementById('grid');
             grid.textContent = ''; // Clear safely
             
-            L.forEach((a,i)=>{
+            const shown = L.slice(0, visibleCount);
+            
+            shown.forEach((a,i)=>{
                 const sp=a.id===1763,rk=i+1,pic=a.profilePic||fa;
                 const rev=gv(a,'grossAgenticAmount'),jobs=gi(a,'successfulJobCount'),succ=gv(a,'successRate');
                 const on=a.isOnline||a.metrics?.isOnline;
@@ -1119,6 +1121,19 @@
                 card.appendChild(expand);
                 grid.appendChild(card);
             });
+            
+            // Load More button
+            if(visibleCount < L.length) {
+                const more = document.createElement('div');
+                more.style.cssText = 'grid-column:1/-1;text-align:center;padding:24px';
+                const btn = document.createElement('button');
+                btn.className = 'cbtn cbtn-ghost';
+                btn.style.cssText = 'padding:12px 32px;font-size:0.9375rem';
+                btn.textContent = `Show More (${L.length - visibleCount} remaining)`;
+                btn.onclick = () => { visibleCount += 20; render(); };
+                more.appendChild(btn);
+                grid.appendChild(more);
+            }
         }
 
         function tgl(card){
