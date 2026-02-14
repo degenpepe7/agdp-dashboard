@@ -706,6 +706,17 @@
             .ctrl { flex-direction: column; }
             .nav-links { flex-wrap: wrap; gap: 10px; }
         }
+    /* Legit Score badges */
+    .legit-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.6875rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+    .legit-badge.legit{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)}
+    .legit-badge.mixed{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)}
+    .legit-badge.sus{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)}
+    .legit-badge.wash{background:rgba(239,68,68,0.25);color:#f87171;border:1px solid rgba(239,68,68,0.4)}
+    .legit-badge.na{background:rgba(100,100,100,0.15);color:#888;border:1px solid rgba(100,100,100,0.3)}
+    .wash-toggle{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);cursor:pointer;font-size:0.8125rem;color:var(--text);transition:all 0.2s}
+    .wash-toggle:hover{background:rgba(139,92,246,0.2)}
+    .wash-toggle.active{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981}
+    .wash-toggle input{accent-color:#8b5cf6}
     </style>
 </head>
 <body>
@@ -759,7 +770,11 @@
                     <button class="tab" data-s="jobs" onclick="ss('jobs')">Jobs</button>
                     <button class="tab" data-s="success" onclick="ss('success')">Success</button>
                     <button class="tab" data-s="rating" onclick="ss('rating')">Rating</button>
+                    <button class="tab" data-s="legit" onclick="ss('legit')">🛡 Legit</button>
                 </div>
+                <label class="wash-toggle" id="washToggle" onclick="toggleWash()">
+                    <input type="checkbox" id="washCb"> Hide Wash Trading
+                </label>
             </div>
             <div class="ld" id="ld">Loading agents...</div>
             <div class="cards hidden" id="grid"></div>
@@ -800,7 +815,19 @@
         }
 
         // ========== STATE ==========
-        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20;
+        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false;
+
+        // Wash trading detection
+        function getLegitScore(a) {
+            const tc = a.transactionCount || a.metrics?.transactionCount || 0;
+            const ub = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
+            if (tc < 5) return { score: -1, label: 'N/A', cls: 'na' }; // too few tx
+            const ratio = ub / tc;
+            if (ratio >= 0.3) return { score: 90, label: 'Legit', cls: 'legit' };
+            if (ratio >= 0.1) return { score: 60, label: 'Mixed', cls: 'mixed' };
+            if (ratio >= 0.03) return { score: 30, label: 'Sus', cls: 'sus' };
+            return { score: 10, label: 'Wash', cls: 'wash' };
+        }
         const fa=`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2318181b'/><text y='62' x='50' text-anchor='middle' font-size='36' fill='%2352525b'>◆</text></svg>`;
 
         // ========== INIT ==========
@@ -985,16 +1012,19 @@
         }
 
         // ========== SORT ==========
+        function toggleWash(){filterWash=!filterWash;document.getElementById('washCb').checked=filterWash;document.getElementById('washToggle').classList.toggle('active',filterWash);visibleCount=20;render()}
         function ss(s){S=s;visibleCount=20;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));render()}
 
         // ========== RENDER AGENTS ==========
         function render(){
             const q=document.getElementById('q').value.toLowerCase();
             let L=A.filter(a=>a.name.toLowerCase().includes(q));
+            if(filterWash) L=L.filter(a=>{const s=getLegitScore(a);return s.score<0||s.score>=30;});
             L.sort((a,b)=>{
                 if(S==='revenue')return gv(b,'grossAgenticAmount')-gv(a,'grossAgenticAmount');
                 if(S==='jobs')return gi(b,'successfulJobCount')-gi(a,'successfulJobCount');
                 if(S==='success')return gv(b,'successRate')-gv(a,'successRate');
+                if(S==='legit')return getLegitScore(b).score-getLegitScore(a).score;
                 return gR(b.id)-gR(a.id);
             });
             document.getElementById('cnt').textContent=L.length+' agents';
@@ -1037,6 +1067,15 @@
                     name.appendChild(star);
                 }
                 info.appendChild(name);
+
+                const ls = getLegitScore(a);
+                if(ls.score >= 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'legit-badge ' + ls.cls;
+                    badge.textContent = ls.label;
+                    badge.title = 'Unique buyers / total transactions ratio';
+                    info.appendChild(badge);
+                }
                 
                 if(a.category) {
                     const cat = document.createElement('div');
@@ -1055,9 +1094,11 @@
                 
                 const metrics = document.createElement('div');
                 metrics.className = 'card-metrics';
+                const buyers = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
                 metrics.innerHTML = `
                     <div><div class="cm-label">Revenue</div><div class="cm-val green">$${rev>=1000?(rev/1000).toFixed(1)+'K':rev.toFixed(0)}</div></div>
                     <div><div class="cm-label">Jobs</div><div class="cm-val">${jobs>=1000?(jobs/1000).toFixed(1)+'K':jobs}</div></div>
+                    <div><div class="cm-label">Buyers</div><div class="cm-val">${buyers>=1000?(buyers/1000).toFixed(1)+'K':buyers}</div></div>
                     <div><div class="cm-label">Success</div><div class="cm-val">${succ.toFixed(0)}%</div></div>
                 `;
                 
