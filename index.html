@@ -1187,17 +1187,56 @@
         // ========== SERVICES ==========
         function svc(){
             const m={};
-            A.forEach(a=>(a.offerings||[]).forEach(o=>{if(o.name)m[o.name]=(m[o.name]||0)+1}));
-            const s=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,12);
-            const mx=s[0]?.[1]||1;
+            A.forEach(a=>(a.offerings||[]).forEach(o=>{
+                if(!o.name) return;
+                if(!m[o.name]) m[o.name]={count:0,agents:[],prices:[]};
+                m[o.name].count++;
+                m[o.name].agents.push({name:a.name,pic:a.profilePic,price:o.price||o.priceUsd||0,legit:getLegitScore(a)});
+                if(o.price) m[o.name].prices.push(o.price);
+            }));
+            const s=Object.entries(m).sort((a,b)=>b[1].count-a[1].count).slice(0,12);
+            const mx=s[0]?.[1].count||1;
             
             const svcs = document.getElementById('svcs');
             svcs.textContent = '';
-            s.forEach(([n,c])=>{
+            s.forEach(([n,info])=>{
+                const prices=info.prices.filter(p=>p>0);
+                const minP=prices.length?Math.min(...prices):0;
+                const maxP=prices.length?Math.max(...prices):0;
+                const priceStr=prices.length?(minP===maxP?`$${minP}`:`$${minP} - $${maxP}`):'N/A';
+                const legitCount=info.agents.filter(a=>a.legit.score>=30).length;
+                
                 const div = document.createElement('div');
                 div.className = 'svc';
-                div.innerHTML = `<div class="svc-n">${esc(n)}</div><div class="svc-c">${c} agents</div>
-                <div class="svc-prog"><div class="svc-fill" style="width:${(c/mx*100).toFixed(0)}%"></div></div>`;
+                div.style.cursor = 'pointer';
+                div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+                    <div class="svc-n">${esc(n)}</div>
+                    <div style="font-size:0.75rem;color:var(--muted)">${priceStr}</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:2px">
+                    <span class="svc-c">${info.count} agents</span>
+                    <span style="font-size:0.6875rem;color:#10b981">${legitCount} legit</span>
+                </div>
+                <div class="svc-prog"><div class="svc-fill" style="width:${(info.count/mx*100).toFixed(0)}%"></div></div>
+                <div class="svc-detail" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)"></div>`;
+                
+                div.onclick = () => {
+                    const detail = div.querySelector('.svc-detail');
+                    if(detail.style.display === 'none') {
+                        detail.style.display = 'block';
+                        const sorted = info.agents.sort((a,b) => b.legit.score - a.legit.score).slice(0, 8);
+                        detail.innerHTML = sorted.map(a => 
+                            `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.75rem">
+                                <img src="${esc(a.pic||fa)}" style="width:18px;height:18px;border-radius:50%" onerror="this.src='${fa}'">
+                                <span style="flex:1;color:var(--text)">${esc(a.name)}</span>
+                                <span class="legit-badge ${a.legit.cls}" style="font-size:0.5625rem;padding:1px 5px">${a.legit.label}</span>
+                                <span style="color:var(--green)">$${a.price}</span>
+                            </div>`
+                        ).join('') + (info.agents.length > 8 ? `<div style="font-size:0.6875rem;color:var(--muted);margin-top:4px">+${info.agents.length-8} more</div>` : '');
+                    } else {
+                        detail.style.display = 'none';
+                    }
+                };
                 svcs.appendChild(div);
             });
         }
