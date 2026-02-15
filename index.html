@@ -821,49 +821,12 @@
         function getLegitScore(a) {
             const tc = a.transactionCount || a.metrics?.transactionCount || 0;
             const ub = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
-            const rev = a.grossAgenticAmount || a.metrics?.grossAgenticAmount || 0;
-            const jobs = a.successfulJobCount || a.metrics?.successfulJobCount || 0;
-            
             if (tc < 5) return { score: -1, label: 'N/A', cls: 'na' }; // too few tx
-            if (ub === 0) return { score: -1, label: 'N/A', cls: 'na' }; // no buyers
-            
-            const buyerRatio = ub / tc;
-            const revPerBuyer = rev / ub;
-            const jobsPerBuyer = jobs / ub;
-            
-            // Multi-signal wash detection:
-            // 1. Buyer ratio: higher is better
-            // 2. Revenue per buyer: $500+ is suspicious, $1000+ is wash
-            // 3. Jobs per buyer: 100+ is suspicious, 200+ is wash
-            
-            let washSignals = 0;
-            let legitSignals = 0;
-            
-            // Signal 1: Buyer diversity
-            if (buyerRatio >= 0.3) legitSignals += 2;
-            else if (buyerRatio >= 0.1) legitSignals += 1;
-            else if (buyerRatio < 0.03) washSignals += 2;
-            else washSignals += 1;
-            
-            // Signal 2: Revenue concentration (only if revenue exists)
-            if (rev > 0) {
-                if (revPerBuyer >= 1000) washSignals += 2;
-                else if (revPerBuyer >= 500) washSignals += 1;
-                else if (revPerBuyer < 100) legitSignals += 1;
-            }
-            
-            // Signal 3: Job grinding pattern (only if jobs > 100)
-            if (jobs > 100) {
-                if (jobsPerBuyer >= 200) washSignals += 2;
-                else if (jobsPerBuyer >= 100) washSignals += 1;
-                else if (jobsPerBuyer < 20) legitSignals += 1;
-            }
-            
-            // Score based on signal balance
-            if (washSignals >= 4) return { score: 10, label: 'Wash', cls: 'wash' };
-            if (washSignals >= 2) return { score: 30, label: 'Sus', cls: 'sus' };
-            if (legitSignals >= 3) return { score: 90, label: 'Legit', cls: 'legit' };
-            return { score: 60, label: 'Mixed', cls: 'mixed' };
+            const ratio = ub / tc;
+            if (ratio >= 0.3) return { score: 90, label: 'Legit', cls: 'legit' };
+            if (ratio >= 0.1) return { score: 60, label: 'Mixed', cls: 'mixed' };
+            if (ratio >= 0.03) return { score: 30, label: 'Sus', cls: 'sus' };
+            return { score: 10, label: 'Wash', cls: 'wash' };
         }
         const fa=`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2318181b'/><text y='62' x='50' text-anchor='middle' font-size='36' fill='%2352525b'>◆</text></svg>`;
 
@@ -1110,22 +1073,10 @@
                     const badge = document.createElement('span');
                     badge.className = 'legit-badge ' + ls.cls;
                     badge.textContent = ls.label;
-                    
-                    // Build detailed tooltip
-                    const ub = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
                     const tc = a.transactionCount || a.metrics?.transactionCount || 0;
-                    const rev = gv(a,'grossAgenticAmount');
-                    const jobs = gi(a,'successfulJobCount');
-                    const buyerRatio = ub > 0 ? (ub / tc * 100).toFixed(1) : 0;
-                    const revPerBuyer = ub > 0 && rev > 0 ? (rev / ub).toFixed(0) : 0;
-                    const jobsPerBuyer = ub > 0 && jobs > 0 ? (jobs / ub).toFixed(0) : 0;
-                    
-                    badge.title = `Wash Detection Signals:\n` +
-                        `• Buyer diversity: ${buyerRatio}% (${ub}/${tc})\n` +
-                        (rev > 0 ? `• Revenue/buyer: $${revPerBuyer}\n` : '') +
-                        (jobs > 0 ? `• Jobs/buyer: ${jobsPerBuyer}\n` : '') +
-                        `\nHigh rev/buyer or jobs/buyer = wash trading`;
-                    
+                    const ub = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
+                    const ratio = tc > 0 ? (ub/tc*100).toFixed(1) : '0';
+                    badge.title = `Wash Trading Score: ${ls.label}\nUnique Buyers: ${ub}\nTotal Transactions: ${tc}\nRatio: ${ratio}%\n\nLegit: ≥30% | Mixed: 10-30% | Sus: 3-10% | Wash: <3%`;
                     info.appendChild(badge);
                 }
                 
@@ -1181,7 +1132,9 @@
                 
                 const details = document.createElement('div');
                 details.style.cssText = 'margin-top:12px;font-size:0.75rem;color:var(--sub)';
-                details.textContent = `ID: ${a.id} · Buyers: ${gi(a,'uniqueBuyerCount')} · Rating: ${rat>0?'★'+rat.toFixed(1):'—'}`;
+                const jobsPerBuyer = buyers > 0 ? (jobs / buyers).toFixed(1) : '∞';
+                const jpbColor = buyers > 0 && jobs/buyers > 50 ? 'var(--red)' : buyers > 0 && jobs/buyers > 20 ? 'var(--gold)' : 'var(--green)';
+                details.innerHTML = `ID: ${a.id} · Buyers: ${gi(a,'uniqueBuyerCount')} · Jobs/Buyer: <span style="color:${jpbColor};font-weight:600">${jobsPerBuyer}</span> · Rating: ${rat>0?'★'+rat.toFixed(1):'—'}`;
                 if(a.twitterHandle) {
                     details.innerHTML += ` · <a href="https://x.com/${esc(a.twitterHandle)}" target="_blank" style="color:var(--neon);text-decoration:none">@${esc(a.twitterHandle)}</a>`;
                 }
