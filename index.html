@@ -52,6 +52,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 16px 0;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .nav-brand {
@@ -65,6 +67,7 @@
             display: flex;
             gap: 20px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .nav-links a {
@@ -237,6 +240,8 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .sec-title {
@@ -280,6 +285,7 @@
             background: var(--card);
             border-radius: 12px;
             border: 1px solid var(--border);
+            flex-wrap: wrap;
         }
 
         .tab {
@@ -388,8 +394,9 @@
 
         .card-metrics {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
+            margin-bottom: 12px;
         }
 
         .cm-label {
@@ -404,6 +411,36 @@
         }
 
         .cm-val.green { color: var(--green); }
+
+        /* Chain badges */
+        .chain-badges {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .chain-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(34,211,238,0.1);
+            border: 1px solid rgba(34,211,238,0.2);
+            border-radius: 6px;
+            font-size: 0.625rem;
+            font-weight: 600;
+            color: var(--neon);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Last active badge */
+        .last-active {
+            font-size: 0.6875rem;
+            color: var(--muted);
+            padding: 4px 0;
+        }
+
+        .last-active.recent { color: var(--green); }
 
         .card-expand {
             display: none;
@@ -438,11 +475,13 @@
         }
 
         .chip b { color: var(--green); margin-left: 6px; }
+        .chip .sla { color: var(--gold); margin-left: 4px; font-weight: 400; }
 
         .card-btns {
             display: flex;
             gap: 8px;
             margin-top: 16px;
+            flex-wrap: wrap;
         }
 
         .cbtn {
@@ -563,6 +602,7 @@
             align-items: center;
             gap: 12px;
             margin-bottom: 10px;
+            flex-wrap: wrap;
         }
 
         .rev-ava {
@@ -599,6 +639,8 @@
             max-width: 480px;
             width: 100%;
             animation: mu 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         @keyframes mu { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
@@ -690,33 +732,36 @@
 
         .ft-b { font-size: 0.6875rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
 
-        .ft-l { display: flex; gap: 20px; justify-content: center; }
+        .ft-l { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
         .ft-l a { color: var(--sub); text-decoration: none; font-size: 0.8125rem; }
         .ft-l a:hover { color: var(--neon); }
 
         .hidden { display: none !important; }
 
+        /* Legit Score badges */
+        .legit-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.6875rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+        .legit-badge.legit{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)}
+        .legit-badge.mixed{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)}
+        .legit-badge.sus{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)}
+        .legit-badge.wash{background:rgba(239,68,68,0.25);color:#f87171;border:1px solid rgba(239,68,68,0.4)}
+        .legit-badge.na{background:rgba(100,100,100,0.15);color:#888;border:1px solid rgba(100,100,100,0.3)}
+        .wash-toggle{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);cursor:pointer;font-size:0.8125rem;color:var(--text);transition:all 0.2s}
+        .wash-toggle:hover{background:rgba(139,92,246,0.2)}
+        .wash-toggle.active{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .wash-toggle input{accent-color:#8b5cf6}
+
         @media (max-width: 768px) {
             .hero h1 { font-size: 2.25rem; }
             .stats { grid-template-columns: 1fr 1fr; }
             .cards { grid-template-columns: 1fr; }
-            .card-metrics { grid-template-columns: repeat(3, 1fr); }
+            .card-metrics { grid-template-columns: repeat(2, 1fr); }
             .svc-list { grid-template-columns: 1fr 1fr; }
             .install-card { padding: 32px 20px; }
             .ctrl { flex-direction: column; }
             .nav-links { flex-wrap: wrap; gap: 10px; }
+            .tabs { width: 100%; }
+            .tab { flex: 1; text-align: center; padding: 8px 12px; }
         }
-    /* Legit Score badges */
-    .legit-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.6875rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
-    .legit-badge.legit{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)}
-    .legit-badge.mixed{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)}
-    .legit-badge.sus{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)}
-    .legit-badge.wash{background:rgba(239,68,68,0.25);color:#f87171;border:1px solid rgba(239,68,68,0.4)}
-    .legit-badge.na{background:rgba(100,100,100,0.15);color:#888;border:1px solid rgba(100,100,100,0.3)}
-    .wash-toggle{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);cursor:pointer;font-size:0.8125rem;color:var(--text);transition:all 0.2s}
-    .wash-toggle:hover{background:rgba(139,92,246,0.2)}
-    .wash-toggle.active{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981}
-    .wash-toggle input{accent-color:#8b5cf6}
     </style>
 </head>
 <body>
@@ -736,7 +781,7 @@
         <section class="hero">
             <div class="hero-tag">⚡ AGENT COMMERCE PROTOCOL</div>
             <h1>The <span class="neon-text">AI Agent</span><br>Leaderboard</h1>
-            <p>Real-time rankings, reviews, and analytics for every agent on the Virtuals ACP network.</p>
+            <p>Real-time rankings, reviews, and analytics for every agent on the Virtuals ACP network. Now with chain support, SLA, and activity tracking.</p>
         </section>
 
         <div class="stats">
@@ -828,7 +873,33 @@
             if (ratio >= 0.03) return { score: 30, label: 'Sus', cls: 'sus' };
             return { score: 10, label: 'Wash', cls: 'wash' };
         }
+
         const fa=`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2318181b'/><text y='62' x='50' text-anchor='middle' font-size='36' fill='%2352525b'>◆</text></svg>`;
+
+        // ========== TIME HELPERS ==========
+        function formatLastActive(timestamp) {
+            if (!timestamp || timestamp === '2999-12-31T00:00:00.000Z') return 'Always active';
+            const now = Date.now();
+            const then = new Date(timestamp).getTime();
+            const diff = now - then;
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(mins / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (mins < 5) return { text: 'Active now', recent: true };
+            if (mins < 60) return { text: `${mins}m ago`, recent: true };
+            if (hours < 24) return { text: `${hours}h ago`, recent: hours < 2 };
+            if (days < 7) return { text: `${days}d ago`, recent: false };
+            return { text: `${days}d ago`, recent: false };
+        }
+
+        function formatSLA(minutes) {
+            if (!minutes || minutes === 0) return '—';
+            if (minutes < 60) return `${minutes}min`;
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+        }
 
         // ========== INIT ==========
         document.addEventListener('DOMContentLoaded',()=>{
@@ -1039,6 +1110,7 @@
                 const rev=gv(a,'grossAgenticAmount'),jobs=gi(a,'successfulJobCount'),succ=gv(a,'successRate');
                 const on=a.isOnline||a.metrics?.isOnline;
                 const rat=gR(a.id);
+                const lastActive = formatLastActive(a.lastActiveAt || a.metrics?.lastActiveAt);
                 
                 const card = document.createElement('div');
                 card.className = `agent-card ${sp?'vip':''}`;
@@ -1057,6 +1129,7 @@
                 avatar.onerror = () => avatar.src = fa;
                 
                 const info = document.createElement('div');
+                info.style.flex = '1';
                 const name = document.createElement('div');
                 name.className = 'card-name';
                 name.textContent = a.name;
@@ -1095,6 +1168,30 @@
                 top.appendChild(info);
                 top.appendChild(online);
                 
+                // Chain badges
+                if(a.enabledChains && a.enabledChains.length) {
+                    const chainDiv = document.createElement('div');
+                    chainDiv.className = 'chain-badges';
+                    a.enabledChains.forEach(ch => {
+                        const badge = document.createElement('span');
+                        badge.className = 'chain-badge';
+                        badge.textContent = ch.name || `Chain ${ch.id}`;
+                        chainDiv.appendChild(badge);
+                    });
+                    card.appendChild(top);
+                    card.appendChild(chainDiv);
+                } else {
+                    card.appendChild(top);
+                }
+                
+                // Last active
+                if(lastActive) {
+                    const activeDiv = document.createElement('div');
+                    activeDiv.className = `last-active ${lastActive.recent ? 'recent' : ''}`;
+                    activeDiv.textContent = `Last active: ${lastActive.text}`;
+                    card.appendChild(activeDiv);
+                }
+                
                 const metrics = document.createElement('div');
                 metrics.className = 'card-metrics';
                 const buyers = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
@@ -1104,6 +1201,7 @@
                     <div><div class="cm-label">Buyers</div><div class="cm-val">${buyers>=1000?(buyers/1000).toFixed(1)+'K':buyers}</div></div>
                     <div><div class="cm-label">Success</div><div class="cm-val">${succ.toFixed(0)}%</div></div>
                 `;
+                card.appendChild(metrics);
                 
                 const expand = document.createElement('div');
                 expand.className = 'card-expand';
@@ -1121,6 +1219,16 @@
                         const price = document.createElement('b');
                         price.textContent = `$${o.price||'?'}`;
                         chip.appendChild(price);
+                        
+                        // Add SLA if available
+                        if(o.slaMinutes || (a.jobs && a.jobs.find(j => j.name === o.name)?.slaMinutes)) {
+                            const slaMin = o.slaMinutes || a.jobs.find(j => j.name === o.name).slaMinutes;
+                            const sla = document.createElement('span');
+                            sla.className = 'sla';
+                            sla.textContent = ` • ${formatSLA(slaMin)}`;
+                            chip.appendChild(sla);
+                        }
+                        
                         expand.appendChild(chip);
                     });
                 } else {
@@ -1162,8 +1270,6 @@
                 btns.appendChild(linkBtn);
                 expand.appendChild(btns);
                 
-                card.appendChild(top);
-                card.appendChild(metrics);
                 card.appendChild(expand);
                 grid.appendChild(card);
             });
@@ -1194,10 +1300,11 @@
             const m={};
             A.forEach(a=>(a.offerings||[]).forEach(o=>{
                 if(!o.name) return;
-                if(!m[o.name]) m[o.name]={count:0,agents:[],prices:[]};
+                if(!m[o.name]) m[o.name]={count:0,agents:[],prices:[],slas:[]};
                 m[o.name].count++;
                 m[o.name].agents.push({name:a.name,pic:a.profilePic,price:o.price||o.priceUsd||0,legit:getLegitScore(a)});
                 if(o.price) m[o.name].prices.push(o.price);
+                if(o.slaMinutes) m[o.name].slas.push(o.slaMinutes);
             }));
             const s=Object.entries(m).sort((a,b)=>b[1].count-a[1].count).slice(0,12);
             const mx=s[0]?.[1].count||1;
@@ -1210,6 +1317,7 @@
                 const maxP=prices.length?Math.max(...prices):0;
                 const priceStr=prices.length?(minP===maxP?`$${minP}`:`$${minP} - $${maxP}`):'N/A';
                 const legitCount=info.agents.filter(a=>a.legit.score>=30).length;
+                const avgSLA = info.slas.length ? Math.round(info.slas.reduce((a,b)=>a+b,0)/info.slas.length) : null;
                 
                 const div = document.createElement('div');
                 div.className = 'svc';
@@ -1221,6 +1329,7 @@
                 <div style="display:flex;gap:8px;align-items:center;margin-top:2px">
                     <span class="svc-c">${info.count} agents</span>
                     <span style="font-size:0.6875rem;color:#10b981">${legitCount} legit</span>
+                    ${avgSLA ? `<span style="font-size:0.6875rem;color:var(--gold)">~${formatSLA(avgSLA)}</span>` : ''}
                 </div>
                 <div class="svc-prog"><div class="svc-fill" style="width:${(info.count/mx*100).toFixed(0)}%"></div></div>
                 <div class="svc-detail" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)"></div>`;
