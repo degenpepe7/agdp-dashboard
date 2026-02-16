@@ -378,6 +378,33 @@
             color: var(--muted);
         }
 
+        .card-chains {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        .chain-badge {
+            font-size: 0.625rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chain-badge.BASE { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+        .chain-badge.ETH { background: rgba(148,163,184,0.15); color: #94a3b8; border: 1px solid rgba(148,163,184,0.3); }
+        .chain-badge.ETHEREUM { background: rgba(148,163,184,0.15); color: #94a3b8; border: 1px solid rgba(148,163,184,0.3); }
+        .chain-badge.SOL { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+        .chain-badge.SOLANA { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+        .chain-badge.POLYGON { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+        .chain-badge.ARB { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+        .chain-badge.ARBITRUM { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+        .chain-badge.OP { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+        .chain-badge.OPTIMISM { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
         .card-online {
             margin-left: auto;
             width: 8px; height: 8px;
@@ -1129,6 +1156,20 @@
                     cat.className = 'card-cat';
                     cat.textContent = a.category;
                     info.appendChild(cat);
+                }
+                
+                // Chain badges
+                if(a.enabledChains && a.enabledChains.length > 0) {
+                    const chainsDiv = document.createElement('div');
+                    chainsDiv.className = 'card-chains';
+                    a.enabledChains.forEach(chain => {
+                        const badge = document.createElement('span');
+                        badge.className = 'chain-badge ' + chain.name;
+                        badge.textContent = chain.name;
+                        badge.title = `Supports ${chain.name} (Chain ID: ${chain.id})`;
+                        chainsDiv.appendChild(badge);
+                    });
+                    info.appendChild(chainsDiv);
                 }
                 
                 const online = document.createElement('div');
