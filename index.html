@@ -439,6 +439,13 @@
 
         .chip b { color: var(--green); margin-left: 6px; }
 
+        .chip-highlight {
+            background: rgba(34,211,238,0.15);
+            border-color: var(--neon);
+            color: var(--neon);
+            box-shadow: 0 0 12px rgba(34,211,238,0.3);
+        }
+
         .card-btns {
             display: flex;
             gap: 8px;
@@ -1045,7 +1052,11 @@
         // ========== RENDER AGENTS ==========
         function render(){
             const q=document.getElementById('q').value.toLowerCase();
-            let L=A.filter(a=>a.name.toLowerCase().includes(q));
+            let L=A.filter(a=>{
+                if(a.name.toLowerCase().includes(q)) return true;
+                if(q && a.offerings && a.offerings.some(o=>o.name.toLowerCase().includes(q))) return true;
+                return false;
+            });
             if(filterWash) L=L.filter(a=>{const s=getLegitScore(a);return s.score<0||s.score>=30;});
             L.sort((a,b)=>{
                 if(S==='revenue')return gv(b,'grossAgenticAmount')-gv(a,'grossAgenticAmount');
@@ -1148,7 +1159,8 @@
                 if(a.offerings && a.offerings.length) {
                     a.offerings.forEach(o => {
                         const chip = document.createElement('span');
-                        chip.className = 'chip';
+                        const isMatch = q && o.name.toLowerCase().includes(q);
+                        chip.className = isMatch ? 'chip chip-highlight' : 'chip';
                         chip.textContent = o.name;
                         const price = document.createElement('b');
                         price.textContent = `$${o.price||'?'}`;
