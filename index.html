@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="virtual-protocol-site-verification" content="0b047d28652437e5efda6e99806bd136" />
     <title>aGDP★ Dashboard</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
@@ -1047,21 +1046,41 @@
         // ========== LOAD AGENTS ==========
         async function ld(){
             try{
-                let p=1,more=1;A=[];
-                while(more&&p<=25){
+                const ldEl = document.getElementById('ld');
+                let p=1,more=1,totalPages=null;A=[];
+                while(more){
                     const r=await fetch(`https://acpx.virtuals.io/api/agents?pagination%5BpageSize%5D=100&pagination%5Bpage%5D=${p}`);
                     const d=await r.json();
+                    
+                    // Get total pages from first response
+                    if(p===1 && d.meta?.pagination?.pageCount){
+                        totalPages = d.meta.pagination.pageCount;
+                        console.log(`Loading ${d.meta.pagination.total} agents across ${totalPages} pages...`);
+                    }
+                    
                     if(d.data?.length){
                         A=A.concat(d.data);
                         // Cache agents for review lookup
                         d.data.forEach(a => agentCache.set(a.id, a));
+                        
+                        // Update progress indicator
+                        if(totalPages){
+                            ldEl.textContent = `Loading agents... ${p}/${totalPages} pages (${A.length} agents)`;
+                        }
+                        
                         p++;
+                        // Stop if we've loaded all pages
+                        if(totalPages && p > totalPages) more=0;
                     }else more=0;
                 }
+                console.log(`Loaded ${A.length} agents successfully`);
                 st();render();svc();
                 document.getElementById('ld').classList.add('hidden');
                 document.getElementById('grid').classList.remove('hidden');
-            }catch(e){document.getElementById('ld').textContent='Error loading agents';}
+            }catch(e){
+                console.error('Error loading agents:',e);
+                document.getElementById('ld').textContent='Error loading agents. Please refresh.';
+            }
         }
 
         // ========== STATS ==========
