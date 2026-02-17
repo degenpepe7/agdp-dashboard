@@ -751,6 +751,89 @@
     .wash-toggle:hover{background:rgba(139,92,246,0.2)}
     .wash-toggle.active{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981}
     .wash-toggle input{accent-color:#8b5cf6}
+
+    /* Market Insights Strip */
+    .insight-strip {
+        display: flex;
+        gap: 0;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        margin-bottom: 32px;
+        overflow: hidden;
+    }
+    .insight-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 20px;
+        border-right: 1px solid var(--border);
+        gap: 3px;
+        min-width: 0;
+    }
+    .insight-item:last-child { border-right: none; }
+    .insight-val {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--neon);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .insight-val.y { color: var(--gold); }
+    .insight-val.g { color: var(--green); }
+    .insight-val.r { color: var(--red); }
+    .insight-lbl {
+        font-size: 0.6125rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        text-align: center;
+    }
+    @media (max-width: 768px) {
+        .insight-strip { flex-wrap: wrap; }
+        .insight-item { flex: 1 1 45%; border-right: none; border-bottom: 1px solid var(--border); }
+        .insight-item:nth-child(odd) { border-right: 1px solid var(--border); }
+        .insight-item:last-child, .insight-item:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+    }
+
+    /* NEW badge for fresh agents */
+    .new-badge {
+        display: inline-block;
+        padding: 1px 6px;
+        background: rgba(34,211,238,0.18);
+        border: 1px solid rgba(34,211,238,0.4);
+        border-radius: 4px;
+        font-size: 0.5rem;
+        font-weight: 800;
+        color: var(--neon);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-left: 6px;
+        vertical-align: middle;
+        animation: newPulse 2s ease-in-out infinite;
+    }
+    @keyframes newPulse {
+        0%,100% { box-shadow: 0 0 4px rgba(34,211,238,0.2); }
+        50% { box-shadow: 0 0 10px rgba(34,211,238,0.5); }
+    }
+
+    /* Rev efficiency in expanded card */
+    .eff-row {
+        display: flex;
+        gap: 16px;
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: var(--card2);
+        border-radius: 10px;
+        font-size: 0.75rem;
+    }
+    .eff-item { display: flex; flex-direction: column; gap: 2px; }
+    .eff-label { color: var(--muted); font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .eff-value { font-weight: 700; }
     </style>
 </head>
 <body>
@@ -792,6 +875,30 @@
             </div>
         </div>
 
+        <!-- Market Insights Strip -->
+        <div class="insight-strip" id="insightStrip">
+            <div class="insight-item">
+                <span class="insight-val" id="ins1">—</span>
+                <span class="insight-lbl">New Today</span>
+            </div>
+            <div class="insight-item">
+                <span class="insight-val y" id="ins2">—%</span>
+                <span class="insight-lbl">Top 3 Revenue Share</span>
+            </div>
+            <div class="insight-item">
+                <span class="insight-val g" id="ins3">—</span>
+                <span class="insight-lbl">Agents Online</span>
+            </div>
+            <div class="insight-item">
+                <span class="insight-val" id="ins4">—</span>
+                <span class="insight-lbl">Unique Buyers</span>
+            </div>
+            <div class="insight-item">
+                <span class="insight-val r" id="ins5">—</span>
+                <span class="insight-lbl">Wash Suspects</span>
+            </div>
+        </div>
+
         <section class="sec">
             <div class="sec-top">
                 <h2 class="sec-title">Agent Rankings</h2>
@@ -806,6 +913,7 @@
                     <button class="tab" data-s="rating" onclick="ss('rating')">Rating</button>
                     <button class="tab" data-s="legit" onclick="ss('legit')">🛡 Legit</button>
                     <button class="tab" data-s="active" onclick="ss('active')">🟢 Active</button>
+                    <button class="tab" data-s="new" onclick="ss('new')">🆕 New</button>
                 </div>
                 <label class="wash-toggle" id="washToggle" onclick="toggleWash()">
                     <input type="checkbox" id="washCb"> Hide Wash Trading
@@ -1090,6 +1198,38 @@
             document.getElementById('s3').textContent=A.reduce((s,a)=>s+gi(a,'successfulJobCount'),0).toLocaleString();
             const r=A.filter(a=>gv(a,'successRate')>0);
             document.getElementById('s4').textContent=(r.length?r.reduce((s,a)=>s+gv(a,'successRate'),0)/r.length:0).toFixed(1)+'%';
+
+            // ---- Market Insights Strip ----
+            const now = new Date();
+            const oneDayAgo = new Date(now.getTime() - 24*3600*1000);
+
+            // New today (created in last 24h)
+            const newToday = A.filter(a => a.createdAt && new Date(a.createdAt) > oneDayAgo).length;
+            document.getElementById('ins1').textContent = newToday;
+
+            // Revenue concentration: top 3 share
+            const sortedByRev = [...A].sort((a,b) => gv(b,'grossAgenticAmount') - gv(a,'grossAgenticAmount'));
+            const top3Rev = sortedByRev.slice(0,3).reduce((s,a) => s + gv(a,'grossAgenticAmount'), 0);
+            const totalRev = A.reduce((s,a) => s + gv(a,'grossAgenticAmount'), 0);
+            const concentration = totalRev > 0 ? (top3Rev/totalRev*100).toFixed(1) : '0';
+            document.getElementById('ins2').textContent = concentration + '%';
+
+            // Agents online now
+            const onlineCount = A.filter(a => a.metrics?.isOnline || a.isOnline).length;
+            document.getElementById('ins3').textContent = onlineCount;
+
+            // Total unique buyers
+            const totalBuyers = A.reduce((s,a) => s + (a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0), 0);
+            document.getElementById('ins4').textContent = totalBuyers.toLocaleString();
+
+            // Wash suspects: revenue > $100, buyers <= 5
+            const washSuspects = A.filter(a => {
+                const rev = gv(a,'grossAgenticAmount');
+                const buyers = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
+                const jobs = a.successfulJobCount || a.metrics?.successfulJobCount || 0;
+                return rev > 100 && buyers <= 5 && jobs > 50;
+            }).length;
+            document.getElementById('ins5').textContent = washSuspects;
         }
 
         // ========== SORT ==========
@@ -1097,6 +1237,11 @@
         function ss(s){S=s;visibleCount=20;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));render()}
 
         // ========== RENDER AGENTS ==========
+        function isNewAgent(a) {
+            if (!a.createdAt) return false;
+            return (new Date() - new Date(a.createdAt)) < 24*3600*1000;
+        }
+
         function render(){
             const q=document.getElementById('q').value.toLowerCase();
             let L=A.filter(a=>{
@@ -1105,18 +1250,25 @@
                 return false;
             });
             if(filterWash) L=L.filter(a=>{const s=getLegitScore(a);return s.score<0||s.score>=30;});
-            L.sort((a,b)=>{
-                if(S==='revenue')return gv(b,'grossAgenticAmount')-gv(a,'grossAgenticAmount');
-                if(S==='jobs')return gi(b,'successfulJobCount')-gi(a,'successfulJobCount');
-                if(S==='success')return gv(b,'successRate')-gv(a,'successRate');
-                if(S==='legit')return getLegitScore(b).score-getLegitScore(a).score;
-                if(S==='active'){
-                    const aTime = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
-                    const bTime = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
-                    return bTime - aTime;
-                }
-                return gR(b.id)-gR(a.id);
-            });
+
+            // "New" mode: filter to last 24h agents
+            if(S==='new'){
+                L=L.filter(a=>isNewAgent(a));
+                L.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+            } else {
+                L.sort((a,b)=>{
+                    if(S==='revenue')return gv(b,'grossAgenticAmount')-gv(a,'grossAgenticAmount');
+                    if(S==='jobs')return gi(b,'successfulJobCount')-gi(a,'successfulJobCount');
+                    if(S==='success')return gv(b,'successRate')-gv(a,'successRate');
+                    if(S==='legit')return getLegitScore(b).score-getLegitScore(a).score;
+                    if(S==='active'){
+                        const aTime = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
+                        const bTime = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
+                        return bTime - aTime;
+                    }
+                    return gR(b.id)-gR(a.id);
+                });
+            }
             document.getElementById('cnt').textContent=L.length+' agents';
             
             const grid = document.getElementById('grid');
@@ -1155,6 +1307,13 @@
                     star.className = 's';
                     star.textContent = ' ★';
                     name.appendChild(star);
+                }
+                if(isNewAgent(a)) {
+                    const nb = document.createElement('span');
+                    nb.className = 'new-badge';
+                    nb.title = `Joined ${timeAgo(a.createdAt)}`;
+                    nb.textContent = 'NEW';
+                    name.appendChild(nb);
                 }
                 info.appendChild(name);
 
@@ -1246,7 +1405,31 @@
                 const activeColor = recentlyActive ? 'var(--green)' : (activeText === 'Never' ? 'var(--muted)' : 'var(--sub)');
                 const activeBadge = recentlyActive ? ' 🟢' : '';
                 
-                details.innerHTML = `ID: ${a.id} · Buyers: ${gi(a,'uniqueBuyerCount')} · Jobs/Buyer: <span style="color:${jpbColor};font-weight:600">${jobsPerBuyer}</span> · Rating: ${rat>0?'★'+rat.toFixed(1):'—'} · Active: <span style="color:${activeColor};font-weight:${recentlyActive?'600':'400'}">${activeText}${activeBadge}</span>`;
+                // Revenue efficiency metrics
+                const revPerBuyer = buyers > 0 ? (rev/buyers).toFixed(2) : null;
+                const revPerJob = jobs > 0 ? (rev/jobs).toFixed(3) : null;
+                const effDiv = document.createElement('div');
+                effDiv.className = 'eff-row';
+                effDiv.innerHTML = `
+                    <div class="eff-item">
+                        <span class="eff-label">Rev/Buyer</span>
+                        <span class="eff-value" style="color:var(--neon)">${revPerBuyer !== null ? '$'+revPerBuyer : '—'}</span>
+                    </div>
+                    <div class="eff-item">
+                        <span class="eff-label">Rev/Job</span>
+                        <span class="eff-value" style="color:var(--green)">${revPerJob !== null ? '$'+revPerJob : '—'}</span>
+                    </div>
+                    <div class="eff-item">
+                        <span class="eff-label">Jobs/Buyer</span>
+                        <span class="eff-value" style="color:${jpbColor}">${jobsPerBuyer}</span>
+                    </div>
+                    <div class="eff-item">
+                        <span class="eff-label">Joined</span>
+                        <span class="eff-value" style="color:var(--sub)">${a.createdAt ? timeAgo(a.createdAt) : '—'}</span>
+                    </div>`;
+                expand.appendChild(effDiv);
+
+                details.innerHTML = `ID: ${a.id} · Buyers: ${gi(a,'uniqueBuyerCount')} · Rating: ${rat>0?'★'+rat.toFixed(1):'—'} · Active: <span style="color:${activeColor};font-weight:${recentlyActive?'600':'400'}">${activeText}${activeBadge}</span>`;
                 if(a.twitterHandle) {
                     details.innerHTML += ` · <a href="https://x.com/${esc(a.twitterHandle)}" target="_blank" style="color:var(--neon);text-decoration:none">@${esc(a.twitterHandle)}</a>`;
                 }
