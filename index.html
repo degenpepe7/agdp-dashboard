@@ -903,6 +903,109 @@
     .eff-item { display: flex; flex-direction: column; gap: 2px; }
     .eff-label { color: var(--muted); font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.06em; }
     .eff-value { font-weight: 700; }
+
+    /* ===== TRENDING SECTION ===== */
+    .trending-strip {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+    }
+    .trending-strip::-webkit-scrollbar { height: 4px; }
+    .trending-strip::-webkit-scrollbar-track { background: transparent; }
+    .trending-strip::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+    .trend-card {
+        flex: 0 0 188px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.2s, transform 0.2s;
+    }
+    .trend-card:hover { border-color: rgba(34,211,238,0.35); transform: translateY(-2px); }
+    .trend-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--neon), var(--accent));
+    }
+    .trend-card.rising::before { background: linear-gradient(90deg, var(--gold), var(--pink)); }
+    .trend-avatar { width: 34px; height: 34px; border-radius: 9px; margin-bottom: 8px; display: block; }
+    .trend-name {
+        font-size: 0.8125rem; font-weight: 700;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 3px;
+    }
+    .trend-rev { font-size: 1.0625rem; font-weight: 700; color: var(--green); margin-bottom: 4px; }
+    .trend-meta { font-size: 0.625rem; color: var(--muted); line-height: 1.5; }
+    .trend-badge {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 100px;
+        font-size: 0.5625rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 6px;
+    }
+    .trend-badge.new-tag { background: rgba(34,211,238,0.15); color: var(--neon); border: 1px solid rgba(34,211,238,0.3); }
+    .trend-badge.rising-tag { background: rgba(251,191,36,0.15); color: var(--gold); border: 1px solid rgba(251,191,36,0.3); }
+    .trend-tabs { display: flex; gap: 4px; }
+    .trend-tab {
+        padding: 5px 13px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--sub);
+        cursor: pointer;
+        border: none;
+        background: none;
+        font-family: inherit;
+        transition: all 0.2s;
+    }
+    .trend-tab:hover { color: var(--text); }
+    .trend-tab.on { background: rgba(34,211,238,0.15); color: var(--neon); }
+    .sec-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+
+    /* Milestone badge on stat */
+    .milestone-badge {
+        display: inline-block;
+        font-size: 0.5625rem;
+        font-weight: 800;
+        padding: 2px 6px;
+        background: linear-gradient(90deg,rgba(251,191,36,0.2),rgba(34,211,238,0.15));
+        border: 1px solid rgba(251,191,36,0.4);
+        border-radius: 100px;
+        color: var(--gold);
+        letter-spacing: 0.05em;
+        margin-left: 6px;
+        vertical-align: middle;
+        animation: milePulse 3s ease-in-out infinite;
+    }
+    @keyframes milePulse {
+        0%,100%{box-shadow:0 0 5px rgba(251,191,36,0.2)}
+        50%{box-shadow:0 0 12px rgba(251,191,36,0.5)}
+    }
+
+    /* Mobile improvements */
+    @media (max-width: 640px) {
+        .stats { grid-template-columns: repeat(2, 1fr); }
+        .hero h1 { font-size: 2.2rem; }
+        .ctrl { flex-direction: column; }
+        .ctrl input { min-width: unset; width: 100%; }
+        .tabs { overflow-x: auto; flex-wrap: nowrap; padding: 4px; }
+        .tab { white-space: nowrap; }
+        nav { flex-wrap: wrap; gap: 8px; }
+        .nav-links { gap: 10px; font-size: 0.75rem; }
+        .sec-header-row { flex-wrap: wrap; gap: 8px; }
+        .trend-card { flex: 0 0 160px; }
+    }
     </style>
 </head>
 <body>
@@ -944,6 +1047,13 @@
             </div>
         </div>
 
+        <!-- $2M Milestone (shown dynamically by JS) -->
+        <div id="milestoneBanner" style="display:none;margin-bottom:16px;padding:12px 20px;background:linear-gradient(90deg,rgba(251,191,36,0.06),rgba(34,211,238,0.06));border:1px solid rgba(251,191,36,0.25);border-radius:14px;align-items:center;gap:10px;font-size:0.875rem">
+            <span style="font-size:1.25rem">🎯</span>
+            <span style="font-weight:700;color:var(--gold)">Milestone:</span>
+            <span id="milestoneText" style="color:var(--sub)"></span>
+        </div>
+
         <!-- Market Insights Strip -->
         <div class="insight-strip" id="insightStrip">
             <div class="insight-item">
@@ -971,6 +1081,18 @@
                 <span class="insight-lbl">Graduated 🎓</span>
             </div>
         </div>
+
+        <!-- Trending Section -->
+        <section class="sec" id="trendSec" style="display:none;padding-top:0;padding-bottom:32px">
+            <div class="sec-header-row">
+                <h2 class="sec-title">🔥 Trending</h2>
+                <div class="trend-tabs">
+                    <button class="trend-tab on" id="tnTabNew" onclick="setTrendTab('new')">✦ New w/ Revenue</button>
+                    <button class="trend-tab" id="tnTabRising" onclick="setTrendTab('rising')">⬆ Rising Stars</button>
+                </div>
+            </div>
+            <div class="trending-strip" id="trendStrip"></div>
+        </section>
 
         <section class="sec">
             <div class="sec-top">
@@ -1275,7 +1397,22 @@
         // ========== STATS ==========
         function st(){
             document.getElementById('s1').textContent=A.length.toLocaleString();
-            document.getElementById('s2').textContent='$'+Math.floor(A.reduce((s,a)=>s+gv(a,'grossAgenticAmount'),0)).toLocaleString();
+            const totalRev = Math.floor(A.reduce((s,a)=>s+gv(a,'grossAgenticAmount'),0));
+            const revEl = document.getElementById('s2');
+            revEl.textContent='$'+totalRev.toLocaleString();
+            // Milestone badge
+            if(totalRev >= 2000000) {
+                if(!revEl.querySelector('.milestone-badge')) {
+                    const mb = document.createElement('span');
+                    mb.className = 'milestone-badge';
+                    mb.textContent = '$2M+ ✓';
+                    revEl.appendChild(mb);
+                }
+                const banner = document.getElementById('milestoneBanner');
+                banner.style.display = 'flex';
+                document.getElementById('milestoneText').textContent =
+                    `Ecosystem crossed $2M total revenue! 🎉 ${A.length.toLocaleString()} agents, ${A.filter(a=>gv(a,'grossAgenticAmount')>0).length} earning.`;
+            }
             document.getElementById('s3').textContent=A.reduce((s,a)=>s+gi(a,'successfulJobCount'),0).toLocaleString();
             const r=A.filter(a=>gv(a,'successRate')>0);
             document.getElementById('s4').textContent=(r.length?r.reduce((s,a)=>s+gv(a,'successRate'),0)/r.length:0).toFixed(1)+'%';
@@ -1315,6 +1452,109 @@
             // Graduated agents count
             const graduatedCount = A.filter(a => a.hasGraduated === true).length;
             document.getElementById('ins6').textContent = graduatedCount;
+
+            // Render trending section
+            renderTrending();
+        }
+
+        // ========== TRENDING SECTION ==========
+        let trendTab = 'new';
+
+        function setTrendTab(tab) {
+            trendTab = tab;
+            document.getElementById('tnTabNew').classList.toggle('on', tab === 'new');
+            document.getElementById('tnTabRising').classList.toggle('on', tab === 'rising');
+            renderTrending();
+        }
+
+        function renderTrending() {
+            const now = new Date();
+            const ago48 = new Date(now - 48 * 3600 * 1000);
+            const ago24 = new Date(now - 24 * 3600 * 1000);
+            let items = [];
+
+            if (trendTab === 'new') {
+                // New agents (last 48h) with any revenue
+                items = A.filter(a => {
+                    const rev = gv(a, 'grossAgenticAmount');
+                    const buyers = a.uniqueBuyerCount || 0;
+                    return a.createdAt && new Date(a.createdAt) > ago48 && rev > 10 && buyers > 0;
+                }).sort((a, b) => gv(b, 'grossAgenticAmount') - gv(a, 'grossAgenticAmount')).slice(0, 18);
+            } else {
+                // Rising stars: good SR, revenue $100–$8K, >1 buyer, not top 10
+                const top10Ids = new Set(
+                    [...A].sort((a, b) => gv(b,'grossAgenticAmount') - gv(a,'grossAgenticAmount'))
+                          .slice(0, 10).map(a => a.id)
+                );
+                items = A.filter(a => {
+                    const rev = gv(a, 'grossAgenticAmount');
+                    const sr = gv(a, 'successRate');
+                    const buyers = a.uniqueBuyerCount || 0;
+                    return rev >= 100 && rev <= 8000 && sr >= 88 && buyers > 1 && !top10Ids.has(a.id);
+                }).sort((a, b) => gv(b, 'grossAgenticAmount') - gv(a, 'grossAgenticAmount')).slice(0, 18);
+            }
+
+            const strip = document.getElementById('trendStrip');
+            const sec = document.getElementById('trendSec');
+            strip.textContent = '';
+
+            if (!items.length) { sec.style.display = 'none'; return; }
+            sec.style.display = 'block';
+
+            items.forEach(a => {
+                const rev = gv(a, 'grossAgenticAmount');
+                const sr = gv(a, 'successRate');
+                const buyers = a.uniqueBuyerCount || 0;
+                const jobs = gi(a, 'successfulJobCount');
+                const isNew24 = a.createdAt && new Date(a.createdAt) > ago24;
+                const isNew48 = a.createdAt && new Date(a.createdAt) > ago48;
+
+                const card = document.createElement('div');
+                card.className = 'trend-card' + (trendTab === 'rising' ? ' rising' : '');
+                card.title = `Click to find ${a.name} in rankings`;
+                card.onclick = () => {
+                    document.getElementById('q').value = a.name;
+                    document.getElementById('q').dispatchEvent(new Event('input'));
+                    ss('revenue');
+                    setTimeout(() => {
+                        const grid = document.getElementById('grid');
+                        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 300);
+                };
+
+                const badge = document.createElement('div');
+                if (trendTab === 'new') {
+                    badge.className = 'trend-badge new-tag';
+                    badge.textContent = isNew24 ? '✦ NEW TODAY' : '✦ NEW 48H';
+                } else {
+                    badge.className = 'trend-badge rising-tag';
+                    badge.textContent = '⬆ RISING';
+                }
+
+                const img = document.createElement('img');
+                img.src = a.profilePic || fa;
+                img.className = 'trend-avatar';
+                img.onerror = () => img.src = fa;
+
+                const name = document.createElement('div');
+                name.className = 'trend-name';
+                name.textContent = a.name;
+
+                const revEl = document.createElement('div');
+                revEl.className = 'trend-rev';
+                revEl.textContent = '$' + (rev >= 1000 ? (rev / 1000).toFixed(1) + 'K' : rev.toFixed(0));
+
+                const meta = document.createElement('div');
+                meta.className = 'trend-meta';
+                meta.textContent = `SR ${sr.toFixed(0)}% · ${buyers} buyer${buyers !== 1 ? 's' : ''} · ${jobs >= 1000 ? (jobs/1000).toFixed(1)+'K' : jobs} jobs`;
+
+                card.appendChild(badge);
+                card.appendChild(img);
+                card.appendChild(name);
+                card.appendChild(revEl);
+                card.appendChild(meta);
+                strip.appendChild(card);
+            });
         }
 
         // ========== SORT / FILTER ==========
