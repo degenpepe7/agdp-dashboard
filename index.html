@@ -739,6 +739,9 @@
             .install-card { padding: 32px 20px; }
             .ctrl { flex-direction: column; }
             .nav-links { flex-wrap: wrap; gap: 10px; }
+            .insight-strip { flex-wrap: wrap; }
+            .insight-item { flex: 1 1 30%; min-width: 80px; }
+            .cat-filter-wrap { gap: 6px; }
         }
     /* Legit Score badges */
     .legit-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.6875rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
@@ -798,6 +801,72 @@
         .insight-item { flex: 1 1 45%; border-right: none; border-bottom: 1px solid var(--border); }
         .insight-item:nth-child(odd) { border-right: 1px solid var(--border); }
         .insight-item:last-child, .insight-item:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+    }
+
+    /* Category Filter Bar */
+    .cat-filter-wrap {
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .cat-filter-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+    }
+    .cat-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .cat-chip {
+        padding: 4px 12px;
+        border-radius: 100px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        color: var(--sub);
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .cat-chip:hover { border-color: var(--neon); color: var(--neon); }
+    .cat-chip.on {
+        background: rgba(34,211,238,0.12);
+        border-color: rgba(34,211,238,0.4);
+        color: var(--neon);
+    }
+    /* Online Only toggle */
+    .online-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 100px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--sub);
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .online-toggle:hover { border-color: var(--green); color: var(--green); }
+    .online-toggle.active {
+        background: rgba(74,222,128,0.12);
+        border-color: rgba(74,222,128,0.4);
+        color: var(--green);
+    }
+    .online-dot {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: currentColor;
     }
 
     /* NEW badge for fresh agents */
@@ -897,6 +966,10 @@
                 <span class="insight-val r" id="ins5">—</span>
                 <span class="insight-lbl">Wash Suspects</span>
             </div>
+            <div class="insight-item">
+                <span class="insight-val g" id="ins6">—</span>
+                <span class="insight-lbl">Graduated 🎓</span>
+            </div>
         </div>
 
         <section class="sec">
@@ -918,6 +991,14 @@
                 <label class="wash-toggle" id="washToggle" onclick="toggleWash()">
                     <input type="checkbox" id="washCb"> Hide Wash Trading
                 </label>
+                <button class="online-toggle" id="onlineToggle" onclick="toggleOnline()">
+                    <span class="online-dot"></span> Online Only
+                </button>
+            </div>
+            <!-- Category Filter Bar -->
+            <div class="cat-filter-wrap hidden" id="catFilterWrap">
+                <span class="cat-filter-label">Category:</span>
+                <div class="cat-chips" id="catFilterBar"></div>
             </div>
             <div class="ld" id="ld">Loading agents...</div>
             <div class="cards hidden" id="grid"></div>
@@ -958,7 +1039,7 @@
         }
 
         // ========== STATE ==========
-        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false;
+        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false, filterCat='', filterOnline=false;
 
         // Wash trading detection
         function getLegitScore(a) {
@@ -1182,7 +1263,7 @@
                     }else more=0;
                 }
                 console.log(`Loaded ${A.length} agents successfully`);
-                st();render();svc();
+                st();render();svc();buildCatFilter();
                 document.getElementById('ld').classList.add('hidden');
                 document.getElementById('grid').classList.remove('hidden');
             }catch(e){
@@ -1230,11 +1311,58 @@
                 return rev > 100 && buyers <= 5 && jobs > 50;
             }).length;
             document.getElementById('ins5').textContent = washSuspects;
+
+            // Graduated agents count
+            const graduatedCount = A.filter(a => a.hasGraduated === true).length;
+            document.getElementById('ins6').textContent = graduatedCount;
         }
 
-        // ========== SORT ==========
+        // ========== SORT / FILTER ==========
         function toggleWash(){filterWash=!filterWash;document.getElementById('washCb').checked=filterWash;document.getElementById('washToggle').classList.toggle('active',filterWash);visibleCount=20;render()}
         function ss(s){S=s;visibleCount=20;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));render()}
+
+        function setCat(cat) {
+            filterCat = (filterCat === cat) ? '' : cat; // toggle
+            visibleCount = 20;
+            document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('on', c.dataset.cat === filterCat));
+            render();
+        }
+
+        function toggleOnline() {
+            filterOnline = !filterOnline;
+            const btn = document.getElementById('onlineToggle');
+            btn.classList.toggle('active', filterOnline);
+            visibleCount = 20;
+            render();
+        }
+
+        function buildCatFilter() {
+            const cats = {};
+            A.forEach(a => {
+                const cat = a.category || 'OTHER';
+                cats[cat] = (cats[cat] || 0) + 1;
+            });
+            const bar = document.getElementById('catFilterBar');
+            bar.innerHTML = '';
+            // "All" chip
+            const all = document.createElement('button');
+            all.className = 'cat-chip on';
+            all.dataset.cat = '';
+            all.textContent = `All (${A.length})`;
+            all.onclick = () => setCat('');
+            bar.appendChild(all);
+            // Category chips sorted by count
+            Object.entries(cats).sort((a,b) => b[1]-a[1]).forEach(([cat, cnt]) => {
+                const chip = document.createElement('button');
+                chip.className = 'cat-chip';
+                chip.dataset.cat = cat;
+                const icons = {ON_CHAIN:'⛓', INFORMATION:'📊', PRODUCTIVITY:'⚡', CREATIVE:'🎨', ENTERTAINMENT:'🎮', OTHER:'◆'};
+                chip.textContent = `${icons[cat]||'◆'} ${cat} (${cnt})`;
+                chip.onclick = () => setCat(cat);
+                bar.appendChild(chip);
+            });
+            document.getElementById('catFilterWrap').classList.remove('hidden');
+        }
 
         // ========== RENDER AGENTS ==========
         function isNewAgent(a) {
@@ -1250,6 +1378,8 @@
                 return false;
             });
             if(filterWash) L=L.filter(a=>{const s=getLegitScore(a);return s.score<0||s.score>=30;});
+            if(filterCat) L=L.filter(a=>(a.category||'OTHER')===filterCat);
+            if(filterOnline) L=L.filter(a=>a.metrics?.isOnline||a.isOnline);
 
             // "New" mode: filter to last 24h agents
             if(S==='new'){
