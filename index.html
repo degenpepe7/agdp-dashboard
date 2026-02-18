@@ -1163,16 +1163,41 @@
         // ========== STATE ==========
         let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false, filterCat='', filterOnline=false;
 
+        // ========== SMART REVENUE: handles $100M DB cap + gross/net split ==========
+        // The API has two revenue fields:
+        //   grossAgenticAmount = platform volume (can be wash-inflated, capped at $99,999,999.99)
+        //   revenue            = protocol net revenue (more accurate, excludes refunds/wash)
+        // When gross >= $100M sentinel, the DB hit its max — use net revenue instead.
+        function getRev(a) {
+            const gross = parseFloat(a.grossAgenticAmount || a.metrics?.grossAgenticAmount) || 0;
+            const net   = parseFloat(a.revenue        || a.metrics?.revenue)        || 0;
+            if (gross >= 99999999) return net; // $100M sentinel — use net
+            return gross || net;
+        }
+        // Returns true when gross is suspiciously higher than net (wash signal)
+        function hasRevDiscrepancy(a) {
+            const gross = parseFloat(a.grossAgenticAmount || a.metrics?.grossAgenticAmount) || 0;
+            const net   = parseFloat(a.revenue        || a.metrics?.revenue)        || 0;
+            return gross > 1000 && net > 0 && (gross / net) > 50;
+        }
+
         // Wash trading detection
         function getLegitScore(a) {
             const tc = a.transactionCount || a.metrics?.transactionCount || 0;
             const ub = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
             if (tc < 5) return { score: -1, label: 'N/A', cls: 'na' }; // too few tx
             const ratio = ub / tc;
-            if (ratio >= 0.3) return { score: 90, label: 'Legit', cls: 'legit' };
-            if (ratio >= 0.1) return { score: 60, label: 'Mixed', cls: 'mixed' };
-            if (ratio >= 0.03) return { score: 30, label: 'Sus', cls: 'sus' };
-            return { score: 10, label: 'Wash', cls: 'wash' };
+            // NEW: gross/net revenue ratio as wash signal (catches Sympson-type inflation)
+            if (hasRevDiscrepancy(a)) {
+                const gross = parseFloat(a.grossAgenticAmount || a.metrics?.grossAgenticAmount) || 0;
+                const net   = parseFloat(a.revenue        || a.metrics?.revenue)        || 0;
+                const multiplier = net > 0 ? Math.round(gross/net) : '∞';
+                return { score: 10, label: 'Wash', cls: 'wash', detail: `Gross ${multiplier}× net revenue` };
+            }
+            if (ratio >= 0.3) return { score: 90, label: 'Legit', cls: 'legit', detail: null };
+            if (ratio >= 0.1) return { score: 60, label: 'Mixed', cls: 'mixed', detail: null };
+            if (ratio >= 0.03) return { score: 30, label: 'Sus', cls: 'sus', detail: null };
+            return { score: 10, label: 'Wash', cls: 'wash', detail: null };
         }
         const fa=`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2318181b'/><text y='62' x='50' text-anchor='middle' font-size='36' fill='%2352525b'>◆</text></svg>`;
 
@@ -1326,6 +1351,7 @@
         // ========== DATA HELPERS ==========
         function gv(a,k){return parseFloat(a[k])||parseFloat(a.metrics?.[k])||0}
         function gi(a,k){return parseInt(a[k])||parseInt(a.metrics?.[k])||0}
+        // Alias: revenue display uses smart getRev() for all $ values
         function gR(id){const r=JSON.parse(localStorage.getItem('agdp_reviews')||'[]').filter(x=>x.agentId===id);return r.length?r.reduce((s,x)=>s+x.rating,0)/r.length:0}
         
         function timeAgo(dateStr) {
@@ -1397,7 +1423,7 @@
         // ========== STATS ==========
         function st(){
             document.getElementById('s1').textContent=A.length.toLocaleString();
-            const totalRev = Math.floor(A.reduce((s,a)=>s+gv(a,'grossAgenticAmount'),0));
+            const totalRev = Math.floor(A.reduce((s,a)=>s+getRev(a),0));
             const revEl = document.getElementById('s2');
             revEl.textContent='$'+totalRev.toLocaleString();
             // Milestone badge
@@ -1411,7 +1437,7 @@
                 const banner = document.getElementById('milestoneBanner');
                 banner.style.display = 'flex';
                 document.getElementById('milestoneText').textContent =
-                    `Ecosystem crossed $2M total revenue! 🎉 ${A.length.toLocaleString()} agents, ${A.filter(a=>gv(a,'grossAgenticAmount')>0).length} earning.`;
+                    `Ecosystem crossed $2M total revenue! 🎉 ${A.length.toLocaleString()} agents, ${A.filter(a=>getRev(a)>0).length} earning.`;
             }
             document.getElementById('s3').textContent=A.reduce((s,a)=>s+gi(a,'successfulJobCount'),0).toLocaleString();
             const r=A.filter(a=>gv(a,'successRate')>0);
@@ -1426,9 +1452,9 @@
             document.getElementById('ins1').textContent = newToday;
 
             // Revenue concentration: top 3 share
-            const sortedByRev = [...A].sort((a,b) => gv(b,'grossAgenticAmount') - gv(a,'grossAgenticAmount'));
-            const top3Rev = sortedByRev.slice(0,3).reduce((s,a) => s + gv(a,'grossAgenticAmount'), 0);
-            const totalRev = A.reduce((s,a) => s + gv(a,'grossAgenticAmount'), 0);
+            const sortedByRev = [...A].sort((a,b) => getRev(b) - getRev(a));
+            const top3Rev = sortedByRev.slice(0,3).reduce((s,a) => s + getRev(a), 0);
+            const totalRev = A.reduce((s,a) => s + getRev(a), 0);
             const concentration = totalRev > 0 ? (top3Rev/totalRev*100).toFixed(1) : '0';
             document.getElementById('ins2').textContent = concentration + '%';
 
@@ -1442,7 +1468,7 @@
 
             // Wash suspects: revenue > $100, buyers <= 5
             const washSuspects = A.filter(a => {
-                const rev = gv(a,'grossAgenticAmount');
+                const rev = getRev(a);
                 const buyers = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
                 const jobs = a.successfulJobCount || a.metrics?.successfulJobCount || 0;
                 return rev > 100 && buyers <= 5 && jobs > 50;
@@ -1476,22 +1502,22 @@
             if (trendTab === 'new') {
                 // New agents (last 48h) with any revenue
                 items = A.filter(a => {
-                    const rev = gv(a, 'grossAgenticAmount');
+                    const rev = getRev(a);
                     const buyers = a.uniqueBuyerCount || 0;
                     return a.createdAt && new Date(a.createdAt) > ago48 && rev > 10 && buyers > 0;
-                }).sort((a, b) => gv(b, 'grossAgenticAmount') - gv(a, 'grossAgenticAmount')).slice(0, 18);
+                }).sort((a, b) => getRev(b) - getRev(a)).slice(0, 18);
             } else {
                 // Rising stars: good SR, revenue $100–$8K, >1 buyer, not top 10
                 const top10Ids = new Set(
-                    [...A].sort((a, b) => gv(b,'grossAgenticAmount') - gv(a,'grossAgenticAmount'))
+                    [...A].sort((a, b) => getRev(b) - getRev(a))
                           .slice(0, 10).map(a => a.id)
                 );
                 items = A.filter(a => {
-                    const rev = gv(a, 'grossAgenticAmount');
+                    const rev = getRev(a);
                     const sr = gv(a, 'successRate');
                     const buyers = a.uniqueBuyerCount || 0;
                     return rev >= 100 && rev <= 8000 && sr >= 88 && buyers > 1 && !top10Ids.has(a.id);
-                }).sort((a, b) => gv(b, 'grossAgenticAmount') - gv(a, 'grossAgenticAmount')).slice(0, 18);
+                }).sort((a, b) => getRev(b) - getRev(a)).slice(0, 18);
             }
 
             const strip = document.getElementById('trendStrip');
@@ -1502,7 +1528,7 @@
             sec.style.display = 'block';
 
             items.forEach(a => {
-                const rev = gv(a, 'grossAgenticAmount');
+                const rev = getRev(a);
                 const sr = gv(a, 'successRate');
                 const buyers = a.uniqueBuyerCount || 0;
                 const jobs = gi(a, 'successfulJobCount');
@@ -1627,7 +1653,7 @@
                 L.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
             } else {
                 L.sort((a,b)=>{
-                    if(S==='revenue')return gv(b,'grossAgenticAmount')-gv(a,'grossAgenticAmount');
+                    if(S==='revenue')return getRev(b)-getRev(a);
                     if(S==='jobs')return gi(b,'successfulJobCount')-gi(a,'successfulJobCount');
                     if(S==='success')return gv(b,'successRate')-gv(a,'successRate');
                     if(S==='legit')return getLegitScore(b).score-getLegitScore(a).score;
@@ -1648,7 +1674,7 @@
             
             shown.forEach((a,i)=>{
                 const sp=a.id===1763,rk=i+1,pic=a.profilePic||fa;
-                const rev=gv(a,'grossAgenticAmount'),jobs=gi(a,'successfulJobCount'),succ=gv(a,'successRate');
+                const rev=getRev(a),jobs=gi(a,'successfulJobCount'),succ=gv(a,'successRate');
                 const on=a.isOnline||a.metrics?.isOnline;
                 const rat=gR(a.id);
                 
@@ -1695,7 +1721,15 @@
                     const tc = a.transactionCount || a.metrics?.transactionCount || 0;
                     const ub = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
                     const ratio = tc > 0 ? (ub/tc*100).toFixed(1) : '0';
-                    badge.title = `Wash Trading Score: ${ls.label}\nUnique Buyers: ${ub}\nTotal Transactions: ${tc}\nRatio: ${ratio}%\n\nLegit: ≥30% | Mixed: 10-30% | Sus: 3-10% | Wash: <3%`;
+                    const gross = parseFloat(a.grossAgenticAmount || a.metrics?.grossAgenticAmount) || 0;
+                    const net   = parseFloat(a.revenue || a.metrics?.revenue) || 0;
+                    let discrepancyNote = '';
+                    if (ls.detail) {
+                        discrepancyNote = `\n⚠ Revenue discrepancy: ${ls.detail}\nGross: $${gross.toLocaleString()} → Net: $${net.toLocaleString()}`;
+                    } else if (gross >= 99999999) {
+                        discrepancyNote = `\nℹ Gross volume capped ($100M+ lifetime). Showing net revenue.`;
+                    }
+                    badge.title = `Wash Trading Score: ${ls.label}\nUnique Buyers: ${ub}\nTotal Transactions: ${tc}\nRatio: ${ratio}%${discrepancyNote}\n\nLegit: ≥30% | Mixed: 10-30% | Sus: 3-10% | Wash: <3%`;
                     info.appendChild(badge);
                 }
                 
@@ -1731,8 +1765,18 @@
                 const metrics = document.createElement('div');
                 metrics.className = 'card-metrics';
                 const buyers = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
+                // Revenue label: "Net Rev" when gross/net discrepancy, otherwise "Revenue"
+                const grossRaw = parseFloat(a.grossAgenticAmount || a.metrics?.grossAgenticAmount) || 0;
+                const isCapHit = grossRaw >= 99999999;
+                const isDiscrepant = hasRevDiscrepancy(a);
+                const revLabel = isCapHit ? 'Net Rev' : (isDiscrepant ? 'Net Rev ⚠' : 'Revenue');
+                const revTitle = isCapHit
+                    ? `Net Revenue: $${rev.toLocaleString()}\nGross volume exceeded $100M DB cap`
+                    : isDiscrepant
+                        ? `Net Revenue: $${rev.toLocaleString()}\nGross: $${grossRaw.toLocaleString()}\n⚠ Revenue inflation detected`
+                        : `Revenue: $${rev.toLocaleString()}`;
                 metrics.innerHTML = `
-                    <div><div class="cm-label">Revenue</div><div class="cm-val green">$${rev>=1000?(rev/1000).toFixed(1)+'K':rev.toFixed(0)}</div></div>
+                    <div title="${revTitle}"><div class="cm-label">${revLabel}</div><div class="cm-val green">$${rev>=1000?(rev/1000).toFixed(1)+'K':rev.toFixed(0)}</div></div>
                     <div><div class="cm-label">Jobs</div><div class="cm-val">${jobs>=1000?(jobs/1000).toFixed(1)+'K':jobs}</div></div>
                     <div><div class="cm-label">Buyers</div><div class="cm-val">${buyers>=1000?(buyers/1000).toFixed(1)+'K':buyers}</div></div>
                     <div><div class="cm-label">Success</div><div class="cm-val">${succ.toFixed(0)}%</div></div>
