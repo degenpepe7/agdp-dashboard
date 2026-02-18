@@ -1013,7 +1013,7 @@
         <nav>
             <div class="nav-brand">aGDP<span class="neon">★</span></div>
             <div class="nav-links">
-                <div class="live-badge"><span class="live-dot"></span>Live</div>
+                <div class="live-badge"><span class="live-dot"></span>Live <span id="lastUpdated" style="margin-left:4px;color:var(--sub);font-weight:400"></span></div>
                 <div class="login-badge" id="loginBadge" onclick="showLogin()">
                     <span id="loginText">🔒 Login to Review</span>
                 </div>
@@ -1162,6 +1162,16 @@
 
         // ========== STATE ==========
         let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false, filterCat='', filterOnline=false;
+        let lastFetchTime = null;
+        function updateLastUpdated() {
+            const el = document.getElementById('lastUpdated');
+            if (!el || !lastFetchTime) return;
+            const secs = Math.floor((new Date() - lastFetchTime) / 1000);
+            if (secs < 5) el.textContent = '· just now';
+            else if (secs < 60) el.textContent = `· ${secs}s ago`;
+            else el.textContent = `· ${Math.floor(secs/60)}m ago`;
+        }
+        setInterval(updateLastUpdated, 10000);
 
         // ========== SMART REVENUE: handles $100M DB cap + gross/net split ==========
         // The API has two revenue fields:
@@ -1411,6 +1421,8 @@
                     }else more=0;
                 }
                 console.log(`Loaded ${A.length} agents successfully`);
+                lastFetchTime = new Date();
+                updateLastUpdated();
                 st();render();svc();buildCatFilter();
                 document.getElementById('ld').classList.add('hidden');
                 document.getElementById('grid').classList.remove('hidden');
@@ -1454,8 +1466,8 @@
             // Revenue concentration: top 3 share
             const sortedByRev = [...A].sort((a,b) => getRev(b) - getRev(a));
             const top3Rev = sortedByRev.slice(0,3).reduce((s,a) => s + getRev(a), 0);
-            const totalRev = A.reduce((s,a) => s + getRev(a), 0);
-            const concentration = totalRev > 0 ? (top3Rev/totalRev*100).toFixed(1) : '0';
+            const totalRevAll = A.reduce((s,a) => s + getRev(a), 0);
+            const concentration = totalRevAll > 0 ? (top3Rev/totalRevAll*100).toFixed(1) : '0';
             document.getElementById('ins2').textContent = concentration + '%';
 
             // Agents online now
