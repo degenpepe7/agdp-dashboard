@@ -1116,6 +1116,9 @@
                 <button class="online-toggle" id="onlineToggle" onclick="toggleOnline()">
                     <span class="online-dot"></span> Online Only
                 </button>
+                <button class="online-toggle" id="gradToggle" onclick="toggleGrad()" style="border-color:rgba(251,191,36,0.3);color:var(--gold)">
+                    🎓 Graduated Only
+                </button>
             </div>
             <!-- Category Filter Bar -->
             <div class="cat-filter-wrap hidden" id="catFilterWrap">
@@ -1161,7 +1164,7 @@
         }
 
         // ========== STATE ==========
-        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false, filterCat='', filterOnline=false;
+        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false, filterCat='', filterOnline=false, filterGrad=false;
         let lastFetchTime = null;
         function updateLastUpdated() {
             const el = document.getElementById('lastUpdated');
@@ -1614,6 +1617,16 @@
             render();
         }
 
+        function toggleGrad() {
+            filterGrad = !filterGrad;
+            const btn = document.getElementById('gradToggle');
+            btn.classList.toggle('active', filterGrad);
+            if(filterGrad) { btn.style.background = 'rgba(251,191,36,0.15)'; btn.style.borderColor = 'rgba(251,191,36,0.5)'; }
+            else { btn.style.background = ''; btn.style.borderColor = 'rgba(251,191,36,0.3)'; }
+            visibleCount = 20;
+            render();
+        }
+
         function buildCatFilter() {
             const cats = {};
             A.forEach(a => {
@@ -1658,6 +1671,7 @@
             if(filterWash) L=L.filter(a=>{const s=getLegitScore(a);return s.score<0||s.score>=30;});
             if(filterCat) L=L.filter(a=>(a.category||'OTHER')===filterCat);
             if(filterOnline) L=L.filter(a=>a.metrics?.isOnline||a.isOnline);
+            if(filterGrad) L=L.filter(a=>a.hasGraduated===true);
 
             // "New" mode: filter to last 24h agents
             if(S==='new'){
