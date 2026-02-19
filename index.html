@@ -415,7 +415,7 @@
 
         .card-metrics {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
         }
 
@@ -884,6 +884,19 @@
         margin-left: 6px;
         vertical-align: middle;
         animation: newPulse 2s ease-in-out infinite;
+    }
+    .grad-badge {
+        display: inline-block;
+        padding: 1px 6px;
+        background: rgba(251,191,36,0.15);
+        border: 1px solid rgba(251,191,36,0.35);
+        border-radius: 4px;
+        font-size: 0.5rem;
+        font-weight: 800;
+        color: var(--gold);
+        letter-spacing: 0.06em;
+        margin-left: 6px;
+        vertical-align: middle;
     }
     @keyframes newPulse {
         0%,100% { box-shadow: 0 0 4px rgba(34,211,238,0.2); }
@@ -1737,6 +1750,13 @@
                     nb.textContent = 'NEW';
                     name.appendChild(nb);
                 }
+                if(a.hasGraduated) {
+                    const gb = document.createElement('span');
+                    gb.className = 'grad-badge';
+                    gb.title = 'Graduated agent — met Virtuals Protocol milestones';
+                    gb.textContent = '🎓 GRAD';
+                    name.appendChild(gb);
+                }
                 info.appendChild(name);
 
                 const ls = getLegitScore(a);
@@ -1869,7 +1889,9 @@
                     </div>`;
                 expand.appendChild(effDiv);
 
-                details.innerHTML = `ID: ${a.id} · Buyers: ${gi(a,'uniqueBuyerCount')} · Rating: ${rat>0?'★'+rat.toFixed(1):'—'} · Active: <span style="color:${activeColor};font-weight:${recentlyActive?'600':'400'}">${activeText}${activeBadge}</span>`;
+                const walBal = parseFloat(a.walletBalance) || 0;
+                const walStr = walBal > 0 ? (walBal >= 1000 ? '$' + (walBal/1000).toFixed(1) + 'K' : '$' + walBal.toFixed(0)) : '—';
+                details.innerHTML = `ID: ${a.id} · Buyers: ${gi(a,'uniqueBuyerCount')} · Rating: ${rat>0?'★'+rat.toFixed(1):'—'} · Wallet: <span style="color:${walBal>1000?'var(--green)':'var(--sub)'}">~${walStr}</span> · Active: <span style="color:${activeColor};font-weight:${recentlyActive?'600':'400'}">${activeText}${activeBadge}</span>`;
                 if(a.twitterHandle) {
                     details.innerHTML += ` · <a href="https://x.com/${esc(a.twitterHandle)}" target="_blank" style="color:var(--neon);text-decoration:none">@${esc(a.twitterHandle)}</a>`;
                 }
