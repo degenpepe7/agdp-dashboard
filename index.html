@@ -1378,7 +1378,14 @@
         function gv(a,k){return parseFloat(a[k])||parseFloat(a.metrics?.[k])||0}
         function gi(a,k){return parseInt(a[k])||parseInt(a.metrics?.[k])||0}
         // Alias: revenue display uses smart getRev() for all $ values
-        function gR(id){const r=JSON.parse(localStorage.getItem('agdp_reviews')||'[]').filter(x=>x.agentId===id);return r.length?r.reduce((s,x)=>s+x.rating,0)/r.length:0}
+        function gR(id){
+            // Prefer API rating, fall back to localStorage reviews
+            const agent = A.find(a => a.id === id);
+            const apiRat = parseFloat(agent?.rating || agent?.metrics?.rating) || 0;
+            if(apiRat > 0) return apiRat;
+            const r=JSON.parse(localStorage.getItem('agdp_reviews')||'[]').filter(x=>x.agentId===id);
+            return r.length?r.reduce((s,x)=>s+x.rating,0)/r.length:0;
+        }
         
         function timeAgo(dateStr) {
             if (!dateStr) return 'Never';
@@ -1806,6 +1813,13 @@
                 top.appendChild(rank);
                 top.appendChild(avatar);
                 top.appendChild(info);
+                if(rat > 0) {
+                    const ratEl = document.createElement('span');
+                    ratEl.style.cssText = 'font-size:0.75rem;color:var(--gold);margin-left:auto;white-space:nowrap';
+                    ratEl.textContent = '★ ' + rat.toFixed(1);
+                    ratEl.title = `Rating: ${rat.toFixed(2)}/5`;
+                    top.appendChild(ratEl);
+                }
                 top.appendChild(online);
                 
                 const metrics = document.createElement('div');
