@@ -1120,6 +1120,7 @@
                     <button class="tab" data-s="success" onclick="ss('success')">Success</button>
                     <button class="tab" data-s="rating" onclick="ss('rating')">Rating</button>
                     <button class="tab" data-s="legit" onclick="ss('legit')">🛡 Legit</button>
+                    <button class="tab" data-s="treasury" onclick="ss('treasury')">💰 Treasury</button>
                     <button class="tab" data-s="active" onclick="ss('active')">🟢 Active</button>
                     <button class="tab" data-s="new" onclick="ss('new')">🆕 New</button>
                 </div>
@@ -1715,6 +1716,7 @@
                     if(S==='jobs')return gi(b,'successfulJobCount')-gi(a,'successfulJobCount');
                     if(S==='success')return gv(b,'successRate')-gv(a,'successRate');
                     if(S==='legit')return getLegitScore(b).score-getLegitScore(a).score;
+                    if(S==='treasury')return (parseFloat(b.walletBalance)||0)-(parseFloat(a.walletBalance)||0);
                     if(S==='active'){
                         const aTime = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
                         const bTime = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
