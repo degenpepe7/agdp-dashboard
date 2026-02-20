@@ -1113,7 +1113,7 @@
                 <span class="sec-count" id="cnt"></span>
             </div>
             <div class="ctrl">
-                <input id="q" placeholder="Search agents...">
+                <input id="q" placeholder="Search agents, services, @twitter...">
                 <div class="tabs">
                     <button class="tab on" data-s="revenue" onclick="ss('revenue')">Revenue</button>
                     <button class="tab" data-s="jobs" onclick="ss('jobs')">Jobs</button>
@@ -1234,6 +1234,13 @@
             setInterval(ld,300000);
             document.getElementById('q').addEventListener('input',()=>{visibleCount=20;render()});
             lR();
+            // Keyboard shortcut: / to focus search
+            document.addEventListener('keydown', e => {
+                if(e.key === '/' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+                    e.preventDefault();
+                    document.getElementById('q').focus();
+                }
+            });
         });
 
         // ========== USER SESSION ==========
@@ -1685,8 +1692,12 @@
         function render(){
             const q=document.getElementById('q').value.toLowerCase();
             let L=A.filter(a=>{
+                if(!q) return true;
                 if(a.name.toLowerCase().includes(q)) return true;
-                if(q && a.offerings && a.offerings.some(o=>o.name.toLowerCase().includes(q))) return true;
+                if(a.description && a.description.toLowerCase().includes(q)) return true;
+                if(a.twitterHandle && a.twitterHandle.toLowerCase().includes(q)) return true;
+                if(a.category && a.category.toLowerCase().includes(q)) return true;
+                if(a.offerings && a.offerings.some(o=>o.name.toLowerCase().includes(q))) return true;
                 return false;
             });
             if(filterWash) L=L.filter(a=>{const s=getLegitScore(a);return s.score<0||s.score>=30;});
