@@ -1069,9 +1069,9 @@
 
         <!-- Market Insights Strip -->
         <div class="insight-strip" id="insightStrip">
-            <div class="insight-item">
-                <span class="insight-val" id="ins1">—</span>
-                <span class="insight-lbl">New Today</span>
+            <div class="insight-item" title="Percentage of all agents that have earned any revenue">
+                <span class="insight-val g" id="ins1">—</span>
+                <span class="insight-lbl">Earning Rate</span>
             </div>
             <div class="insight-item">
                 <span class="insight-val y" id="ins2">—%</span>
@@ -1459,6 +1459,8 @@
         function st(){
             document.getElementById('s1').textContent=A.length.toLocaleString();
             const totalRev = Math.floor(A.reduce((s,a)=>s+getRev(a),0));
+            const earningAgents = A.filter(a => getRev(a) > 0).length;
+            const earningRate = A.length > 0 ? (earningAgents / A.length * 100).toFixed(1) : '0';
             const revEl = document.getElementById('s2');
             revEl.textContent='$'+totalRev.toLocaleString();
             // Milestone badge
@@ -1472,7 +1474,7 @@
                 const banner = document.getElementById('milestoneBanner');
                 banner.style.display = 'flex';
                 document.getElementById('milestoneText').textContent =
-                    `Ecosystem crossed $2M total revenue! 🎉 ${A.length.toLocaleString()} agents, ${A.filter(a=>getRev(a)>0).length} earning.`;
+                    `Ecosystem crossed $2M total revenue! 🎉 ${A.length.toLocaleString()} agents, ${earningAgents} earning (${earningRate}%).`;
             }
             document.getElementById('s3').textContent=A.reduce((s,a)=>s+gi(a,'successfulJobCount'),0).toLocaleString();
             const r=A.filter(a=>gv(a,'successRate')>0);
@@ -1481,10 +1483,9 @@
             // ---- Market Insights Strip ----
             const now = new Date();
             const oneDayAgo = new Date(now.getTime() - 24*3600*1000);
-
-            // New today (created in last 24h)
-            const newToday = A.filter(a => a.createdAt && new Date(a.createdAt) > oneDayAgo).length;
-            document.getElementById('ins1').textContent = newToday;
+            const ins1El = document.getElementById('ins1');
+            ins1El.textContent = earningRate + '%';
+            ins1El.title = `${earningAgents} of ${A.length} agents earning revenue`;
 
             // Revenue concentration: top 3 share
             const sortedByRev = [...A].sort((a,b) => getRev(b) - getRev(a));
