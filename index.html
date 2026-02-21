@@ -788,6 +788,7 @@
     .insight-val.y { color: var(--gold); }
     .insight-val.g { color: var(--green); }
     .insight-val.r { color: var(--red); }
+    .insight-val.n { color: var(--neon); }
     .insight-lbl {
         font-size: 0.6125rem;
         font-weight: 600;
@@ -1092,6 +1093,10 @@
             <div class="insight-item">
                 <span class="insight-val g" id="ins6">—</span>
                 <span class="insight-lbl">Graduated 🎓</span>
+            </div>
+            <div class="insight-item" title="Total wallet balance held across all agents">
+                <span class="insight-val n" id="ins7">—</span>
+                <span class="insight-lbl">Total Treasury</span>
             </div>
         </div>
 
@@ -1471,18 +1476,23 @@
             const earningRate = A.length > 0 ? (earningAgents / A.length * 100).toFixed(1) : '0';
             const revEl = document.getElementById('s2');
             revEl.textContent='$'+totalRev.toLocaleString();
-            // Milestone badge
-            if(totalRev >= 2000000) {
+            const totalTreasury = A.reduce((s,a) => s + (parseFloat(a.walletBalance) || 0), 0);
+            // Dynamic milestone badge
+            const milestones = [
+                [10000000, '$10M'], [5000000, '$5M'], [2000000, '$2M'], [1000000, '$1M'], [500000, '$500K']
+            ];
+            const hit = milestones.find(([threshold]) => totalRev >= threshold);
+            if(hit) {
                 if(!revEl.querySelector('.milestone-badge')) {
                     const mb = document.createElement('span');
                     mb.className = 'milestone-badge';
-                    mb.textContent = '$2M+ ✓';
                     revEl.appendChild(mb);
                 }
+                revEl.querySelector('.milestone-badge').textContent = hit[1] + '+ ✓';
                 const banner = document.getElementById('milestoneBanner');
                 banner.style.display = 'flex';
                 document.getElementById('milestoneText').textContent =
-                    `Ecosystem crossed $2M total revenue! 🎉 ${A.length.toLocaleString()} agents, ${earningAgents} earning (${earningRate}%).`;
+                    `Ecosystem crossed ${hit[1]} total revenue! 🎉 ${A.length.toLocaleString()} agents, ${earningAgents} earning (${earningRate}%). Treasury: $${totalTreasury >= 1000 ? (totalTreasury/1000).toFixed(0)+'K' : Math.floor(totalTreasury)}.`;
             }
             document.getElementById('s3').textContent=A.reduce((s,a)=>s+gi(a,'successfulJobCount'),0).toLocaleString();
             const r=A.filter(a=>gv(a,'successRate')>0);
@@ -1522,6 +1532,11 @@
             // Graduated agents count
             const graduatedCount = A.filter(a => a.hasGraduated === true).length;
             document.getElementById('ins6').textContent = graduatedCount;
+
+            // Total Treasury (aggregate wallet balances)
+            const ins7El = document.getElementById('ins7');
+            ins7El.textContent = totalTreasury >= 1000 ? '$' + (totalTreasury/1000).toFixed(1) + 'K' : '$' + Math.floor(totalTreasury);
+            ins7El.title = `Total treasury: $${totalTreasury.toLocaleString(undefined, {maximumFractionDigits:0})} across all agent wallets`;
 
             // Render trending section
             renderTrending();
