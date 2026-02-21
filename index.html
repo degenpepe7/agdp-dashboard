@@ -1126,6 +1126,7 @@
                     <button class="tab" data-s="rating" onclick="ss('rating')">Rating</button>
                     <button class="tab" data-s="legit" onclick="ss('legit')">🛡 Legit</button>
                     <button class="tab" data-s="treasury" onclick="ss('treasury')">💰 Treasury</button>
+                    <button class="tab" data-s="velocity" onclick="ss('velocity')">⚡ Velocity</button>
                     <button class="tab" data-s="active" onclick="ss('active')">🟢 Active</button>
                     <button class="tab" data-s="new" onclick="ss('new')">🆕 New</button>
                 </div>
@@ -1206,6 +1207,14 @@
             if (gross >= 99999999) return net; // $100M sentinel — use net
             return gross || net;
         }
+        // Revenue velocity: $/day since agent creation (minimum 1 day age)
+        function getVelocity(a) {
+            const rev = getRev(a);
+            if (!rev || !a.createdAt) return 0;
+            const ageDays = Math.max(1, (Date.now() - new Date(a.createdAt).getTime()) / 86400000);
+            return rev / ageDays;
+        }
+
         // Returns true when gross is suspiciously higher than net (wash signal)
         function hasRevDiscrepancy(a) {
             const gross = parseFloat(a.grossAgenticAmount || a.metrics?.grossAgenticAmount) || 0;
@@ -1732,6 +1741,7 @@
                     if(S==='success')return gv(b,'successRate')-gv(a,'successRate');
                     if(S==='legit')return getLegitScore(b).score-getLegitScore(a).score;
                     if(S==='treasury')return (parseFloat(b.walletBalance)||0)-(parseFloat(a.walletBalance)||0);
+                    if(S==='velocity')return getVelocity(b)-getVelocity(a);
                     if(S==='active'){
                         const aTime = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
                         const bTime = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
@@ -1925,6 +1935,10 @@
                     <div class="eff-item">
                         <span class="eff-label">Jobs/Buyer</span>
                         <span class="eff-value" style="color:${jpbColor}">${jobsPerBuyer}</span>
+                    </div>
+                    <div class="eff-item">
+                        <span class="eff-label">$/Day</span>
+                        <span class="eff-value" style="color:var(--gold)">${getVelocity(a) >= 1 ? '$'+getVelocity(a).toFixed(1) : getVelocity(a) > 0 ? '$'+getVelocity(a).toFixed(3) : '—'}</span>
                     </div>
                     <div class="eff-item">
                         <span class="eff-label">Joined</span>
