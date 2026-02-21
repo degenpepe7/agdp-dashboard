@@ -1007,6 +1007,23 @@
         50%{box-shadow:0 0 12px rgba(251,191,36,0.5)}
     }
 
+    /* Sticky controls bar */
+    .ctrl-sticky {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--bg);
+        padding: 12px 0 8px;
+        margin: 0 -24px;
+        padding-left: 24px;
+        padding-right: 24px;
+        transition: box-shadow 0.2s;
+    }
+    .ctrl-sticky.stuck {
+        box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+        border-bottom: 1px solid var(--border);
+    }
+
     /* Mobile improvements */
     @media (max-width: 640px) {
         .stats { grid-template-columns: repeat(2, 1fr); }
@@ -1117,6 +1134,7 @@
                 <h2 class="sec-title">Agent Rankings</h2>
                 <span class="sec-count" id="cnt"></span>
             </div>
+            <div class="ctrl-sticky" id="ctrlSticky">
             <div class="ctrl">
                 <input id="q" placeholder="Search agents, services, @twitter...">
                 <div class="tabs">
@@ -1144,6 +1162,7 @@
             <div class="cat-filter-wrap hidden" id="catFilterWrap">
                 <span class="cat-filter-label">Category:</span>
                 <div class="cat-chips" id="catFilterBar"></div>
+            </div>
             </div>
             <div class="ld" id="ld">Loading agents...</div>
             <div class="cards hidden" id="grid"></div>
@@ -1249,6 +1268,13 @@
             setInterval(ld,300000);
             document.getElementById('q').addEventListener('input',()=>{visibleCount=20;render()});
             lR();
+            // Sticky controls: add shadow when stuck
+            const stickyEl = document.getElementById('ctrlSticky');
+            const stickyObs = new IntersectionObserver(([e]) => {
+                stickyEl.classList.toggle('stuck', e.intersectionRatio < 1);
+            }, { threshold: [1], rootMargin: '-1px 0px 0px 0px' });
+            stickyObs.observe(stickyEl);
+
             // Keyboard shortcut: / to focus search
             document.addEventListener('keydown', e => {
                 if(e.key === '/' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
