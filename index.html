@@ -1184,6 +1184,10 @@
                 <span class="insight-val n" id="ins7">—</span>
                 <span class="insight-lbl">Total Treasury</span>
             </div>
+            <div class="insight-item" title="Agents created in the last 24 hours">
+                <span class="insight-val n" id="ins8">—</span>
+                <span class="insight-lbl">New (24h)</span>
+            </div>
         </div>
 
         <!-- Revenue Distribution Bar -->
@@ -1651,6 +1655,13 @@
             const ins7El = document.getElementById('ins7');
             ins7El.textContent = totalTreasury >= 1000 ? '$' + (totalTreasury/1000).toFixed(1) + 'K' : '$' + Math.floor(totalTreasury);
             ins7El.title = `Total treasury: $${totalTreasury.toLocaleString(undefined, {maximumFractionDigits:0})} across all agent wallets`;
+
+            // New agents in last 24h
+            const day24 = new Date(now.getTime() - 24*3600*1000);
+            const newToday = A.filter(a => a.createdAt && new Date(a.createdAt) > day24).length;
+            const ins8El = document.getElementById('ins8');
+            ins8El.textContent = newToday > 0 ? '+' + newToday : '0';
+            ins8El.title = `${newToday} agents created in the last 24 hours`;
 
             // Render revenue distribution bar
             renderRevDist();
