@@ -734,7 +734,7 @@
             .hero h1 { font-size: 2.25rem; }
             .stats { grid-template-columns: 1fr 1fr; }
             .cards { grid-template-columns: 1fr; }
-            .card-metrics { grid-template-columns: repeat(3, 1fr); }
+            .card-metrics { grid-template-columns: repeat(2, 1fr); }
             .svc-list { grid-template-columns: 1fr 1fr; }
             .install-card { padding: 32px 20px; }
             .ctrl { flex-direction: column; }
@@ -1007,6 +1007,75 @@
         50%{box-shadow:0 0 12px rgba(251,191,36,0.5)}
     }
 
+    /* Revenue Distribution Bar */
+    .rev-dist {
+        margin-bottom: 24px;
+        padding: 16px 20px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+    }
+    .rev-dist-title {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 10px;
+    }
+    .rev-dist-bar {
+        display: flex;
+        height: 28px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.03);
+    }
+    .rev-dist-seg {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.5625rem;
+        font-weight: 700;
+        color: rgba(255,255,255,0.9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 4px;
+        transition: flex 0.4s ease;
+        cursor: default;
+        position: relative;
+    }
+    .rev-dist-seg:nth-child(1) { background: rgba(34,211,238,0.6); }
+    .rev-dist-seg:nth-child(2) { background: rgba(139,92,246,0.6); }
+    .rev-dist-seg:nth-child(3) { background: rgba(74,222,128,0.5); }
+    .rev-dist-seg:nth-child(4) { background: rgba(251,191,36,0.5); }
+    .rev-dist-seg:nth-child(5) { background: rgba(244,114,182,0.5); }
+    .rev-dist-seg.others { background: rgba(255,255,255,0.06); color: var(--muted); }
+    .rev-dist-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+        font-size: 0.6875rem;
+    }
+    .rev-dist-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--sub);
+    }
+    .rev-dist-legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+        .rev-dist-legend { gap: 6px; font-size: 0.625rem; }
+        .rev-dist-seg { font-size: 0; }
+    }
+
     /* Sticky controls bar */
     .ctrl-sticky {
         position: sticky;
@@ -1115,6 +1184,13 @@
                 <span class="insight-val n" id="ins7">—</span>
                 <span class="insight-lbl">Total Treasury</span>
             </div>
+        </div>
+
+        <!-- Revenue Distribution Bar -->
+        <div class="rev-dist" id="revDist" style="display:none">
+            <div class="rev-dist-title">💰 Revenue Distribution — Top 5 Agents</div>
+            <div class="rev-dist-bar" id="revDistBar"></div>
+            <div class="rev-dist-legend" id="revDistLegend"></div>
         </div>
 
         <!-- Trending Section -->
@@ -1573,8 +1649,71 @@
             ins7El.textContent = totalTreasury >= 1000 ? '$' + (totalTreasury/1000).toFixed(1) + 'K' : '$' + Math.floor(totalTreasury);
             ins7El.title = `Total treasury: $${totalTreasury.toLocaleString(undefined, {maximumFractionDigits:0})} across all agent wallets`;
 
+            // Render revenue distribution bar
+            renderRevDist();
+
             // Render trending section
             renderTrending();
+        }
+
+        // ========== REVENUE DISTRIBUTION BAR ==========
+        function renderRevDist() {
+            const totalRev = A.reduce((s,a) => s + getRev(a), 0);
+            if (totalRev <= 0) { document.getElementById('revDist').style.display = 'none'; return; }
+            const sorted = [...A].filter(a => getRev(a) > 0).sort((a,b) => getRev(b) - getRev(a));
+            const top5 = sorted.slice(0, 5);
+            const top5Rev = top5.reduce((s,a) => s + getRev(a), 0);
+            const othersRev = totalRev - top5Rev;
+
+            const bar = document.getElementById('revDistBar');
+            const legend = document.getElementById('revDistLegend');
+            bar.textContent = '';
+            legend.textContent = '';
+
+            const colors = ['rgba(34,211,238,0.6)','rgba(139,92,246,0.6)','rgba(74,222,128,0.5)','rgba(251,191,36,0.5)','rgba(244,114,182,0.5)'];
+
+            top5.forEach((a, i) => {
+                const rev = getRev(a);
+                const pct = (rev / totalRev * 100);
+                const seg = document.createElement('div');
+                seg.className = 'rev-dist-seg';
+                seg.style.flex = pct.toFixed(2);
+                const label = pct >= 8 ? a.name.slice(0,12) + ' ' + pct.toFixed(1) + '%' : (pct >= 4 ? pct.toFixed(0) + '%' : '');
+                seg.textContent = label;
+                seg.title = a.name + ': $' + rev.toLocaleString(undefined,{maximumFractionDigits:0}) + ' (' + pct.toFixed(1) + '%)';
+                bar.appendChild(seg);
+
+                const li = document.createElement('span');
+                li.className = 'rev-dist-legend-item';
+                const dot = document.createElement('span');
+                dot.className = 'rev-dist-legend-dot';
+                dot.style.background = colors[i];
+                li.appendChild(dot);
+                const txt = document.createTextNode(a.name.slice(0,15) + ' $' + (rev>=1000?(rev/1000).toFixed(1)+'K':rev.toFixed(0)) + ' (' + pct.toFixed(1) + '%)');
+                li.appendChild(txt);
+                legend.appendChild(li);
+            });
+
+            if (othersRev > 0) {
+                const pct = (othersRev / totalRev * 100);
+                const seg = document.createElement('div');
+                seg.className = 'rev-dist-seg others';
+                seg.style.flex = pct.toFixed(2);
+                seg.textContent = pct >= 5 ? 'Others ' + pct.toFixed(1) + '%' : '';
+                seg.title = 'Others: $' + othersRev.toLocaleString(undefined,{maximumFractionDigits:0}) + ' (' + pct.toFixed(1) + '%)';
+                bar.appendChild(seg);
+
+                const li = document.createElement('span');
+                li.className = 'rev-dist-legend-item';
+                const dot = document.createElement('span');
+                dot.className = 'rev-dist-legend-dot';
+                dot.style.background = 'rgba(255,255,255,0.06)';
+                li.appendChild(dot);
+                li.appendChild(document.createTextNode('Others ' + pct.toFixed(1) + '%'));
+                legend.appendChild(li);
+            }
+
+            document.getElementById('revDist').style.display = 'block';
         }
 
         // ========== TRENDING SECTION ==========
