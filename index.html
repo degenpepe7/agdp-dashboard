@@ -1233,6 +1233,9 @@
                 <button class="online-toggle" id="gradToggle" onclick="toggleGrad()" style="border-color:rgba(251,191,36,0.3);color:var(--gold)">
                     🎓 Graduated Only
                 </button>
+                <button class="online-toggle" id="testToggle" onclick="toggleHideTest()" style="border-color:rgba(244,114,182,0.3);color:var(--pink)">
+                    🧹 Hide Test/Buyer
+                </button>
             </div>
             <!-- Category Filter Bar -->
             <div class="cat-filter-wrap hidden" id="catFilterWrap">
@@ -1279,7 +1282,7 @@
         }
 
         // ========== STATE ==========
-        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false, filterCat='', filterOnline=false, filterGrad=false;
+        let A=[], S='revenue', currentUser=null, agentCache=new Map(), visibleCount=20, filterWash=false, filterCat='', filterOnline=false, filterGrad=false, filterHideTest=false;
         let lastFetchTime = null;
         function updateLastUpdated() {
             const el = document.getElementById('lastUpdated');
@@ -1845,6 +1848,25 @@
             render();
         }
 
+        // Test/Buyer agent detection
+        const TEST_PATTERNS = /\b(buyer|requestor|test|sandbox|_test|_buyer|_dev|devrel_)\b/i;
+        function isTestAgent(a) {
+            if (TEST_PATTERNS.test(a.name)) return true;
+            // Agents with "[OLD]" prefix are deprecated
+            if (a.name.startsWith('[OLD]')) return true;
+            return false;
+        }
+
+        function toggleHideTest() {
+            filterHideTest = !filterHideTest;
+            const btn = document.getElementById('testToggle');
+            btn.classList.toggle('active', filterHideTest);
+            if(filterHideTest) { btn.style.background = 'rgba(244,114,182,0.15)'; btn.style.borderColor = 'rgba(244,114,182,0.5)'; }
+            else { btn.style.background = ''; btn.style.borderColor = 'rgba(244,114,182,0.3)'; }
+            visibleCount = 20;
+            render();
+        }
+
         function buildCatFilter() {
             const cats = {};
             A.forEach(a => {
@@ -1894,6 +1916,7 @@
             if(filterCat) L=L.filter(a=>(a.category||'OTHER')===filterCat);
             if(filterOnline) L=L.filter(a=>a.metrics?.isOnline||a.isOnline);
             if(filterGrad) L=L.filter(a=>a.hasGraduated===true);
+            if(filterHideTest) L=L.filter(a=>!isTestAgent(a));
 
             // "New" mode: filter to last 24h agents
             if(S==='new'){
