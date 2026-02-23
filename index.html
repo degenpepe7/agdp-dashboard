@@ -1271,7 +1271,15 @@
                 <div class="cat-chips" id="catFilterBar"></div>
             </div>
             </div>
-            <div class="ld" id="ld">Loading agents...</div>
+            <div class="ld" id="ld">
+                <div style="max-width:400px;margin:0 auto">
+                    <div id="ldText" style="margin-bottom:12px">Loading agents...</div>
+                    <div id="ldBarWrap" style="display:none;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+                        <div id="ldBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--neon),var(--accent));border-radius:3px;transition:width 0.3s ease"></div>
+                    </div>
+                    <div id="ldStats" style="display:none;margin-top:8px;font-size:0.75rem;color:var(--muted)"></div>
+                </div>
+            </div>
             <div class="cards hidden" id="grid"></div>
         </section>
 
@@ -1571,8 +1579,12 @@
         // ========== LOAD AGENTS ==========
         async function ld(){
             try{
-                const ldEl = document.getElementById('ld');
-                let p=1,more=1,totalPages=null;A=[];
+                const ldText = document.getElementById('ldText');
+                const ldBarWrap = document.getElementById('ldBarWrap');
+                const ldBar = document.getElementById('ldBar');
+                const ldStats = document.getElementById('ldStats');
+                let p=1,more=1,totalPages=null,totalAgents=0;A=[];
+                const startTime = Date.now();
                 while(more){
                     const r=await fetch(`https://acpx.virtuals.io/api/agents?pagination%5BpageSize%5D=100&pagination%5Bpage%5D=${p}`);
                     const d=await r.json();
@@ -1580,7 +1592,10 @@
                     // Get total pages from first response
                     if(p===1 && d.meta?.pagination?.pageCount){
                         totalPages = d.meta.pagination.pageCount;
-                        console.log(`Loading ${d.meta.pagination.total} agents across ${totalPages} pages...`);
+                        totalAgents = d.meta.pagination.total;
+                        ldBarWrap.style.display = 'block';
+                        ldStats.style.display = 'block';
+                        console.log(`Loading ${totalAgents} agents across ${totalPages} pages...`);
                     }
                     
                     if(d.data?.length){
@@ -1588,9 +1603,15 @@
                         // Cache agents for review lookup
                         d.data.forEach(a => agentCache.set(a.id, a));
                         
-                        // Update progress indicator
+                        // Update progress bar
                         if(totalPages){
-                            ldEl.textContent = `Loading agents... ${p}/${totalPages} pages (${A.length} agents)`;
+                            const pct = Math.min(100, (p / totalPages * 100));
+                            ldBar.style.width = pct.toFixed(1) + '%';
+                            ldText.textContent = `Loading agents... ${A.length.toLocaleString()} of ${totalAgents.toLocaleString()}`;
+                            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                            const rate = (A.length / parseFloat(elapsed)).toFixed(0);
+                            const eta = rate > 0 ? Math.ceil((totalAgents - A.length) / rate) : '?';
+                            ldStats.textContent = `Page ${p}/${totalPages} · ${elapsed}s elapsed · ~${eta}s remaining`;
                         }
                         
                         p++;
@@ -1606,7 +1627,9 @@
                 document.getElementById('grid').classList.remove('hidden');
             }catch(e){
                 console.error('Error loading agents:',e);
-                document.getElementById('ld').textContent='Error loading agents. Please refresh.';
+                document.getElementById('ldText').textContent='Error loading agents. Please refresh.';
+                document.getElementById('ldBarWrap').style.display='none';
+                document.getElementById('ldStats').style.display='none';
             }
         }
 
