@@ -280,7 +280,14 @@
             background: var(--card);
             border-radius: 12px;
             border: 1px solid var(--border);
+            position: relative;
         }
+
+        /* Thin scrollbar for sort tabs */
+        .tabs::-webkit-scrollbar { height: 3px; }
+        .tabs::-webkit-scrollbar-track { background: transparent; }
+        .tabs::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 3px; }
+        .tabs::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.5); }
 
         .tab {
             padding: 8px 16px;
@@ -412,6 +419,18 @@
 
         .card-online.on { background: var(--green); box-shadow: 0 0 8px rgba(74,222,128,0.5); }
         .card-online.off { background: var(--muted); }
+
+        .card-active-tag {
+            font-size: 0.625rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        .card-active-tag.recent { color: var(--green); background: rgba(74,222,128,0.1); }
+        .card-active-tag.stale { color: var(--gold); background: rgba(251,191,36,0.08); }
+        .card-active-tag.dormant { color: var(--red); background: rgba(248,113,113,0.08); }
 
         .card-metrics {
             display: grid;
@@ -2069,6 +2088,17 @@
                     ratEl.textContent = '★ ' + rat.toFixed(1);
                     ratEl.title = `Rating: ${rat.toFixed(2)}/5`;
                     top.appendChild(ratEl);
+                }
+                // Last active tag on card face
+                if(!on && a.lastActiveAt) {
+                    const diffH = Math.floor((Date.now() - new Date(a.lastActiveAt).getTime()) / 3600000);
+                    if(diffH > 0) {
+                        const tag = document.createElement('span');
+                        tag.className = 'card-active-tag ' + (diffH < 24 ? 'recent' : diffH < 168 ? 'stale' : 'dormant');
+                        tag.textContent = diffH < 24 ? diffH + 'h ago' : diffH < 720 ? Math.floor(diffH/24) + 'd ago' : Math.floor(diffH/720) + 'mo ago';
+                        tag.title = `Last active: ${timeAgo(a.lastActiveAt)}`;
+                        top.appendChild(tag);
+                    }
                 }
                 top.appendChild(online);
                 
