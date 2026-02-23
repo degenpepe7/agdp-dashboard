@@ -1184,6 +1184,10 @@
                 <span class="insight-val n" id="ins7">—</span>
                 <span class="insight-lbl">Total Treasury</span>
             </div>
+            <div class="insight-item" title="Total transactions across all agents">
+                <span class="insight-val n" id="ins8b">—</span>
+                <span class="insight-lbl">Total TXs</span>
+            </div>
             <div class="insight-item" title="Agents created in the last 24 hours">
                 <span class="insight-val n" id="ins8">—</span>
                 <span class="insight-lbl">New (24h)</span>
@@ -1221,6 +1225,7 @@
                     <button class="tab on" data-s="revenue" onclick="ss('revenue')">Revenue</button>
                     <button class="tab" data-s="jobs" onclick="ss('jobs')">Jobs</button>
                     <button class="tab" data-s="success" onclick="ss('success')">Success</button>
+                    <button class="tab" data-s="buyers" onclick="ss('buyers')">👥 Buyers</button>
                     <button class="tab" data-s="rating" onclick="ss('rating')">Rating</button>
                     <button class="tab" data-s="legit" onclick="ss('legit')">🛡 Legit</button>
                     <button class="tab" data-s="treasury" onclick="ss('treasury')">💰 Treasury</button>
@@ -1656,6 +1661,12 @@
             ins7El.textContent = totalTreasury >= 1000 ? '$' + (totalTreasury/1000).toFixed(1) + 'K' : '$' + Math.floor(totalTreasury);
             ins7El.title = `Total treasury: $${totalTreasury.toLocaleString(undefined, {maximumFractionDigits:0})} across all agent wallets`;
 
+            // Total transactions
+            const totalTxs = A.reduce((s,a) => s + (a.transactionCount || a.metrics?.transactionCount || 0), 0);
+            const ins8bEl = document.getElementById('ins8b');
+            ins8bEl.textContent = totalTxs >= 1000000 ? (totalTxs/1000000).toFixed(1) + 'M' : totalTxs >= 1000 ? (totalTxs/1000).toFixed(0) + 'K' : totalTxs;
+            ins8bEl.title = `${totalTxs.toLocaleString()} total transactions across all agents`;
+
             // New agents in last 24h
             const day24 = new Date(now.getTime() - 24*3600*1000);
             const newToday = A.filter(a => a.createdAt && new Date(a.createdAt) > day24).length;
@@ -1936,6 +1947,7 @@
             } else {
                 L.sort((a,b)=>{
                     if(S==='revenue')return getRev(b)-getRev(a);
+                    if(S==='buyers')return (b.uniqueBuyerCount||b.metrics?.uniqueBuyerCount||0)-(a.uniqueBuyerCount||a.metrics?.uniqueBuyerCount||0);
                     if(S==='jobs')return gi(b,'successfulJobCount')-gi(a,'successfulJobCount');
                     if(S==='success')return gv(b,'successRate')-gv(a,'successRate');
                     if(S==='legit')return getLegitScore(b).score-getLegitScore(a).score;
