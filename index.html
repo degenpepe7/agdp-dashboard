@@ -1218,6 +1218,12 @@
             </div>
         </div>
 
+        <!-- Market Pulse — dynamic one-liner summary -->
+        <div id="marketPulse" style="display:none;margin:12px 0 16px;padding:10px 16px;background:linear-gradient(90deg,rgba(34,211,238,0.04),rgba(139,92,246,0.04));border:1px solid var(--border);border-radius:12px;font-size:0.8125rem;color:var(--sub);line-height:1.6">
+            <span style="color:var(--neon);font-weight:600">📡 Market Pulse:</span>
+            <span id="pulseText"></span>
+        </div>
+
         <!-- Revenue Distribution Bar -->
         <div class="rev-dist" id="revDist" style="display:none">
             <div class="rev-dist-title">💰 Revenue Distribution — Top 5 Agents</div>
@@ -1807,11 +1813,55 @@
                 ? `${dormantWhales.length} whale${dormantWhales.length>1?'s':''} dormant 48h+\n$${dormantTotal>=1000?(dormantTotal/1000).toFixed(0)+'K':Math.floor(dormantTotal)} idle capital\n\n` + dormantWhales.map(a => `${a.name}: $${(parseFloat(a.walletBalance)||0)>=1000?((parseFloat(a.walletBalance)||0)/1000).toFixed(1)+'K':(parseFloat(a.walletBalance)||0).toFixed(0)} · ${timeAgo(a.lastActiveAt)}`).join('\n') + '\n\nClick to filter'
                 : 'No dormant whales currently';
 
+            // Market Pulse — dynamic one-liner
+            updateMarketPulse(onlineCount, dormantWhales, dormantTotal);
+
             // Render revenue distribution bar
             renderRevDist();
 
             // Render trending section
             renderTrending();
+        }
+
+        // ========== MARKET PULSE ==========
+        function updateMarketPulse(onlineCount, dormantWhales, dormantTotal) {
+            const el = document.getElementById('marketPulse');
+            const txt = document.getElementById('pulseText');
+            if (!A.length) { el.style.display = 'none'; return; }
+
+            const parts = [];
+
+            // Online status
+            parts.push(`<span style="color:var(--green)">${onlineCount}/${A.length}</span> agents online`);
+
+            // Top performer by velocity
+            const topVel = [...A].filter(a => getRev(a) > 100).sort((a,b) => getVelocity(b) - getVelocity(a))[0];
+            if (topVel) {
+                const vel = getVelocity(topVel);
+                const velStr = vel >= 1000 ? '$' + (vel/1000).toFixed(1) + 'K' : '$' + vel.toFixed(0);
+                parts.push(`<span style="color:var(--neon)">${topVel.name}</span> leads at <span style="color:var(--green)">${velStr}/day</span>`);
+            }
+
+            // Dormant whales
+            if (dormantWhales.length > 0) {
+                const dtStr = dormantTotal >= 1000 ? '$' + (dormantTotal/1000).toFixed(0) + 'K' : '$' + Math.floor(dormantTotal);
+                parts.push(`<span style="color:var(--gold)">${dormantWhales.length}</span> dormant whale${dormantWhales.length > 1 ? 's' : ''} holding <span style="color:var(--gold)">${dtStr}</span>`);
+            }
+
+            // Wash trading note
+            const washCount = A.filter(a => getLegitScore(a).cls === 'wash').length;
+            if (washCount > 0) {
+                parts.push(`<span style="color:var(--red)">${washCount}</span> wash suspect${washCount > 1 ? 's' : ''}`);
+            }
+
+            // Graduated count
+            const gradCount = A.filter(a => a.hasGraduated).length;
+            if (gradCount > 0) {
+                parts.push(`<span style="color:var(--accent2)">${gradCount}</span> graduated`);
+            }
+
+            txt.innerHTML = parts.join(' · ');
+            el.style.display = 'block';
         }
 
         // ========== REVENUE DISTRIBUTION BAR ==========
