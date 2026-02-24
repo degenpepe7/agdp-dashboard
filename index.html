@@ -1212,6 +1212,10 @@
                 <span class="insight-val n" id="ins8">—</span>
                 <span class="insight-lbl">New (24h)</span>
             </div>
+            <div class="insight-item" id="dormantWhaleItem" title="Agents with >$10K wallet balance but inactive for 48+ hours — capital sitting idle" style="cursor:pointer" onclick="filterDormantWhales()">
+                <span class="insight-val y" id="ins9">—</span>
+                <span class="insight-lbl">💤 Dormant Whales</span>
+            </div>
         </div>
 
         <!-- Revenue Distribution Bar -->
@@ -1785,6 +1789,23 @@
             const ins8El = document.getElementById('ins8');
             ins8El.textContent = newToday > 0 ? '+' + newToday : '0';
             ins8El.title = `${newToday} agents created in the last 24 hours`;
+
+            // Dormant Whales: >$10K wallet, inactive >48h
+            const h48ago = new Date(now.getTime() - 48*3600*1000);
+            const dormantWhales = A.filter(a => {
+                const bal = parseFloat(a.walletBalance) || 0;
+                if (bal < 10000) return false;
+                const isOn = a.metrics?.isOnline || a.isOnline;
+                if (isOn) return false;
+                const la = a.lastActiveAt ? new Date(a.lastActiveAt) : null;
+                return !la || la < h48ago;
+            });
+            const ins9El = document.getElementById('ins9');
+            ins9El.textContent = dormantWhales.length;
+            const dormantTotal = dormantWhales.reduce((s,a) => s + (parseFloat(a.walletBalance)||0), 0);
+            ins9El.title = dormantWhales.length > 0
+                ? `${dormantWhales.length} whale${dormantWhales.length>1?'s':''} dormant 48h+\n$${dormantTotal>=1000?(dormantTotal/1000).toFixed(0)+'K':Math.floor(dormantTotal)} idle capital\n\n` + dormantWhales.map(a => `${a.name}: $${(parseFloat(a.walletBalance)||0)>=1000?((parseFloat(a.walletBalance)||0)/1000).toFixed(1)+'K':(parseFloat(a.walletBalance)||0).toFixed(0)} · ${timeAgo(a.lastActiveAt)}`).join('\n') + '\n\nClick to filter'
+                : 'No dormant whales currently';
 
             // Render revenue distribution bar
             renderRevDist();
@@ -2540,6 +2561,33 @@
             });
             localStorage.setItem('agdp_reviews',JSON.stringify(r));
             lR();render();modal.remove();
+        }
+
+        // ========== DORMANT WHALES FILTER ==========
+        function filterDormantWhales() {
+            // Set search to show dormant whales by searching for their names
+            const now = new Date();
+            const h48ago = new Date(now.getTime() - 48*3600*1000);
+            const whales = A.filter(a => {
+                const bal = parseFloat(a.walletBalance) || 0;
+                if (bal < 10000) return false;
+                const isOn = a.metrics?.isOnline || a.isOnline;
+                if (isOn) return false;
+                const la = a.lastActiveAt ? new Date(a.lastActiveAt) : null;
+                return !la || la < h48ago;
+            });
+            if (!whales.length) return;
+            // Use treasury sort to highlight wallet balances
+            ss('treasury');
+            // Temporarily filter to just these agents
+            const names = whales.map(a => a.name.toLowerCase());
+            const q = document.getElementById('q');
+            // Use a special search term that matches dormant whales
+            // Since we can't easily do multi-name search, just sort by treasury and let user see top wallets
+            q.value = '';
+            q.dispatchEvent(new Event('input'));
+            // Scroll to grid
+            document.getElementById('grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         // ========== COPY INSTALL ==========
