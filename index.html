@@ -1148,6 +1148,7 @@
             <div class="nav-links">
                 <div class="live-badge"><span class="live-dot"></span>Live <span id="lastUpdated" style="margin-left:4px;color:var(--sub);font-weight:400"></span><span id="refreshCountdown" style="margin-left:6px;color:var(--muted);font-weight:400;font-size:0.625rem"></span></div>
                 <button id="refreshBtn" onclick="manualRefresh()" title="Refresh data now" style="display:none;background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.2);border-radius:100px;padding:4px 10px;font-size:0.6875rem;font-weight:600;color:var(--neon);cursor:pointer;transition:all 0.2s;font-family:inherit" onmouseenter="this.style.background='rgba(34,211,238,0.2)'" onmouseleave="this.style.background='rgba(34,211,238,0.1)'">↻ Refresh</button>
+                <button id="exportBtn" onclick="exportCSV()" title="Export agent data as CSV" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:100px;padding:4px 10px;font-size:0.6875rem;font-weight:600;color:var(--accent2);cursor:pointer;transition:all 0.2s;font-family:inherit" onmouseenter="this.style.background='rgba(139,92,246,0.2)'" onmouseleave="this.style.background='rgba(139,92,246,0.1)'">📥 Export CSV</button>
                 <div class="login-badge" id="loginBadge" onclick="showLogin()">
                     <span id="loginText">🔒 Login to Review</span>
                 </div>
@@ -2678,6 +2679,63 @@
             q.dispatchEvent(new Event('input'));
             // Scroll to grid
             document.getElementById('grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ========== EXPORT CSV ==========
+        function exportCSV() {
+            if (!A.length) return alert('No data loaded yet');
+            const headers = ['Rank','Name','Category','Revenue','Gross','Jobs','Success%','Buyers','Rev/Buyer','Rev/Job','Velocity$/Day','WalletBalance','Rating','LegitScore','Online','Graduated','ERC8004','Twitter','WalletAddress','CreatedAt','LastActiveAt'];
+            const sorted = [...A].sort((a,b) => getRev(b) - getRev(a));
+            const rows = sorted.map((a, i) => {
+                const rev = getRev(a);
+                const gross = parseFloat(a.grossAgenticAmount || a.metrics?.grossAgenticAmount) || 0;
+                const jobs = gi(a, 'successfulJobCount');
+                const buyers = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0;
+                const sr = gv(a, 'successRate');
+                const rat = parseFloat(a.rating || a.metrics?.rating) || 0;
+                const ls = getLegitScore(a);
+                const on = a.metrics?.isOnline || a.isOnline || false;
+                const vel = getVelocity(a);
+                const bal = parseFloat(a.walletBalance) || 0;
+                const erc = a.latestErc8004 ? a.latestErc8004.identityRegistryTokenId : '';
+                return [
+                    i+1,
+                    '"' + (a.name||'').replace(/"/g,'""') + '"',
+                    a.category || '',
+                    rev.toFixed(2),
+                    gross.toFixed(2),
+                    jobs,
+                    sr.toFixed(2),
+                    buyers,
+                    buyers > 0 ? (rev/buyers).toFixed(2) : 0,
+                    jobs > 0 ? (rev/jobs).toFixed(4) : 0,
+                    vel.toFixed(2),
+                    bal.toFixed(0),
+                    rat.toFixed(2),
+                    ls.label,
+                    on,
+                    a.hasGraduated || false,
+                    erc,
+                    a.twitterHandle || '',
+                    a.walletAddress || '',
+                    a.createdAt || '',
+                    a.lastActiveAt || ''
+                ].join(',');
+            });
+            const csv = headers.join(',') + '\n' + rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `agdp-agents-${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+            // Flash button green
+            const btn = document.getElementById('exportBtn');
+            btn.style.borderColor = 'rgba(74,222,128,0.5)';
+            btn.style.color = '#4ade80';
+            btn.textContent = '✓ Exported';
+            setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; btn.textContent = '📥 Export CSV'; }, 2000);
         }
 
         // ========== COPY INSTALL ==========
