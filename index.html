@@ -434,7 +434,7 @@
 
         .card-metrics {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 12px;
         }
 
@@ -1259,6 +1259,7 @@
                     <button class="tab" data-s="rating" onclick="ss('rating')">Rating</button>
                     <button class="tab" data-s="legit" onclick="ss('legit')">🛡 Legit</button>
                     <button class="tab" data-s="treasury" onclick="ss('treasury')">💰 Treasury</button>
+                    <button class="tab" data-s="revbuyer" onclick="ss('revbuyer')">💎 Rev/Buyer</button>
                     <button class="tab" data-s="velocity" onclick="ss('velocity')">⚡ Velocity</button>
                     <button class="tab" data-s="active" onclick="ss('active')">🟢 Active</button>
                     <button class="tab" data-s="new" onclick="ss('new')">🆕 New</button>
@@ -2135,6 +2136,10 @@
                     if(S==='success')return gv(b,'successRate')-gv(a,'successRate');
                     if(S==='legit')return getLegitScore(b).score-getLegitScore(a).score;
                     if(S==='treasury')return (parseFloat(b.walletBalance)||0)-(parseFloat(a.walletBalance)||0);
+                    if(S==='revbuyer'){
+                        const rb=b2=>(()=>{const r=getRev(b2),bu=b2.uniqueBuyerCount||b2.metrics?.uniqueBuyerCount||0;return bu>0?r/bu:0})();
+                        return rb(b)-rb(a);
+                    }
                     if(S==='velocity')return getVelocity(b)-getVelocity(a);
                     if(S==='active'){
                         const aTime = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
@@ -2279,10 +2284,14 @@
                     : isDiscrepant
                         ? `Net Revenue: $${rev.toLocaleString()}\nGross: $${grossRaw.toLocaleString()}\n⚠ Revenue inflation detected`
                         : `Revenue: $${rev.toLocaleString()}`;
+                const rpb = buyers > 0 ? rev / buyers : 0;
+                const rpbStr = rpb >= 1000 ? '$' + (rpb/1000).toFixed(1) + 'K' : rpb >= 1 ? '$' + rpb.toFixed(0) : rpb > 0 ? '$' + rpb.toFixed(2) : '—';
+                const rpbColor = rpb > 500 ? 'var(--gold)' : rpb > 0 ? 'var(--neon)' : 'var(--muted)';
                 metrics.innerHTML = `
                     <div title="${revTitle}"><div class="cm-label">${revLabel}</div><div class="cm-val green">$${rev>=1000?(rev/1000).toFixed(1)+'K':rev.toFixed(0)}</div></div>
                     <div><div class="cm-label">Jobs</div><div class="cm-val">${jobs>=1000?(jobs/1000).toFixed(1)+'K':jobs}</div></div>
                     <div><div class="cm-label">Buyers</div><div class="cm-val">${buyers>=1000?(buyers/1000).toFixed(1)+'K':buyers}</div></div>
+                    <div title="Revenue per unique buyer — higher = whales or concentrated demand"><div class="cm-label">Rev/Buyer</div><div class="cm-val" style="color:${rpbColor}">${rpbStr}</div></div>
                     <div><div class="cm-label">Success</div><div class="cm-val">${succ.toFixed(0)}%</div></div>
                 `;
                 
