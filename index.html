@@ -918,6 +918,19 @@
         margin-left: 6px;
         vertical-align: middle;
     }
+    .erc8004-badge {
+        display: inline-block;
+        padding: 1px 6px;
+        background: rgba(99,102,241,0.15);
+        border: 1px solid rgba(99,102,241,0.35);
+        border-radius: 4px;
+        font-size: 0.5rem;
+        font-weight: 800;
+        color: #818cf8;
+        letter-spacing: 0.06em;
+        margin-left: 6px;
+        vertical-align: middle;
+    }
     @keyframes newPulse {
         0%,100% { box-shadow: 0 0 4px rgba(34,211,238,0.2); }
         50% { box-shadow: 0 0 10px rgba(34,211,238,0.5); }
@@ -1215,6 +1228,10 @@
             <div class="insight-item" id="dormantWhaleItem" title="Agents with >$10K wallet balance but inactive for 48+ hours — capital sitting idle" style="cursor:pointer" onclick="filterDormantWhales()">
                 <span class="insight-val y" id="ins9">—</span>
                 <span class="insight-lbl">💤 Dormant Whales</span>
+            </div>
+            <div class="insight-item" title="Agents with ERC-8004 on-chain identity registration — verified agent identity on Base">
+                <span class="insight-val n" id="ins10">—</span>
+                <span class="insight-lbl">🔗 On-Chain IDs</span>
             </div>
         </div>
 
@@ -1814,6 +1831,12 @@
                 ? `${dormantWhales.length} whale${dormantWhales.length>1?'s':''} dormant 48h+\n$${dormantTotal>=1000?(dormantTotal/1000).toFixed(0)+'K':Math.floor(dormantTotal)} idle capital\n\n` + dormantWhales.map(a => `${a.name}: $${(parseFloat(a.walletBalance)||0)>=1000?((parseFloat(a.walletBalance)||0)/1000).toFixed(1)+'K':(parseFloat(a.walletBalance)||0).toFixed(0)} · ${timeAgo(a.lastActiveAt)}`).join('\n') + '\n\nClick to filter'
                 : 'No dormant whales currently';
 
+            // ERC-8004 on-chain identity count
+            const erc8004Count = A.filter(a => a.latestErc8004 && a.latestErc8004.identityRegistryTokenId).length;
+            const ins10El = document.getElementById('ins10');
+            ins10El.textContent = erc8004Count;
+            ins10El.title = `${erc8004Count} agent${erc8004Count!==1?'s':''} with ERC-8004 on-chain identity registered on Base`;
+
             // Market Pulse — dynamic one-liner
             updateMarketPulse(onlineCount, dormantWhales, dormantTotal);
 
@@ -2201,6 +2224,13 @@
                     gb.title = 'Graduated agent — met Virtuals Protocol milestones';
                     gb.textContent = '🎓 GRAD';
                     name.appendChild(gb);
+                }
+                if(a.latestErc8004 && a.latestErc8004.identityRegistryTokenId) {
+                    const eb = document.createElement('span');
+                    eb.className = 'erc8004-badge';
+                    eb.title = `ERC-8004 On-Chain Identity\nToken #${a.latestErc8004.identityRegistryTokenId}\nVerified agent identity on Base`;
+                    eb.textContent = '🔗 ERC-8004';
+                    name.appendChild(eb);
                 }
                 info.appendChild(name);
 
