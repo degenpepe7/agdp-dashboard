@@ -1277,6 +1277,13 @@
             <div class="rev-dist-legend" id="revDistLegend"></div>
         </div>
 
+        <!-- Jobs Distribution Bar -->
+        <div class="rev-dist" id="jobsDist" style="display:none;margin-top:12px">
+            <div class="rev-dist-title">⚙️ Jobs Distribution — Top 5 Agents</div>
+            <div class="rev-dist-bar" id="jobsDistBar"></div>
+            <div class="rev-dist-legend" id="jobsDistLegend"></div>
+        </div>
+
         <!-- Trending Section -->
         <section class="sec" id="trendSec" style="display:none;padding-top:0;padding-bottom:32px">
             <div class="sec-header-row">
@@ -1869,8 +1876,9 @@
             // Market Pulse — dynamic one-liner
             updateMarketPulse(onlineCount, dormantWhales, dormantTotal);
 
-            // Render revenue distribution bar
+            // Render distribution bars
             renderRevDist();
+            renderJobsDist();
 
             // Render trending section
             renderTrending();
@@ -1975,6 +1983,67 @@
             }
 
             document.getElementById('revDist').style.display = 'block';
+        }
+
+        // ========== JOBS DISTRIBUTION BAR ==========
+        function renderJobsDist() {
+            const totalJobs = A.reduce((s,a) => s + (a.metrics?.successfulJobCount || 0), 0);
+            if (totalJobs <= 0) { document.getElementById('jobsDist').style.display = 'none'; return; }
+            const sorted = [...A].filter(a => (a.metrics?.successfulJobCount || 0) > 0).sort((a,b) => (b.metrics?.successfulJobCount || 0) - (a.metrics?.successfulJobCount || 0));
+            const top5 = sorted.slice(0, 5);
+            const top5Jobs = top5.reduce((s,a) => s + (a.metrics?.successfulJobCount || 0), 0);
+            const othersJobs = totalJobs - top5Jobs;
+
+            const bar = document.getElementById('jobsDistBar');
+            const legend = document.getElementById('jobsDistLegend');
+            bar.textContent = '';
+            legend.textContent = '';
+
+            const colors = ['rgba(34,211,238,0.6)','rgba(139,92,246,0.6)','rgba(74,222,128,0.5)','rgba(251,191,36,0.5)','rgba(244,114,182,0.5)'];
+
+            top5.forEach((a, i) => {
+                const jobs = a.metrics?.successfulJobCount || 0;
+                const pct = (jobs / totalJobs * 100);
+                const seg = document.createElement('div');
+                seg.className = 'rev-dist-seg';
+                seg.style.flex = pct.toFixed(2);
+                seg.style.background = colors[i];
+                const label = pct >= 8 ? a.name.slice(0,12) + ' ' + pct.toFixed(1) + '%' : (pct >= 4 ? pct.toFixed(0) + '%' : '');
+                seg.textContent = label;
+                seg.title = a.name + ': ' + jobs.toLocaleString() + ' jobs (' + pct.toFixed(1) + '%)';
+                bar.appendChild(seg);
+
+                const li = document.createElement('span');
+                li.className = 'rev-dist-legend-item';
+                const dot = document.createElement('span');
+                dot.className = 'rev-dist-legend-dot';
+                dot.style.background = colors[i];
+                li.appendChild(dot);
+                const fmt = jobs >= 1000000 ? (jobs/1000000).toFixed(2)+'M' : jobs >= 1000 ? (jobs/1000).toFixed(1)+'K' : jobs.toString();
+                li.appendChild(document.createTextNode(a.name.slice(0,15) + ' ' + fmt + ' (' + pct.toFixed(1) + '%)'));
+                legend.appendChild(li);
+            });
+
+            if (othersJobs > 0) {
+                const pct = (othersJobs / totalJobs * 100);
+                const seg = document.createElement('div');
+                seg.className = 'rev-dist-seg others';
+                seg.style.flex = pct.toFixed(2);
+                seg.textContent = pct >= 5 ? 'Others ' + pct.toFixed(1) + '%' : '';
+                seg.title = 'Others: ' + othersJobs.toLocaleString() + ' jobs (' + pct.toFixed(1) + '%)';
+                bar.appendChild(seg);
+
+                const li = document.createElement('span');
+                li.className = 'rev-dist-legend-item';
+                const dot = document.createElement('span');
+                dot.className = 'rev-dist-legend-dot';
+                dot.style.background = 'rgba(255,255,255,0.06)';
+                li.appendChild(dot);
+                li.appendChild(document.createTextNode('Others ' + pct.toFixed(1) + '%'));
+                legend.appendChild(li);
+            }
+
+            document.getElementById('jobsDist').style.display = 'block';
         }
 
         // ========== TRENDING SECTION ==========
