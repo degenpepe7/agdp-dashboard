@@ -1127,19 +1127,40 @@
 
     /* Mobile improvements */
     @media (max-width: 640px) {
-        .stats { grid-template-columns: repeat(2, 1fr); }
-        .hero h1 { font-size: 2.2rem; }
+        .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .stat-card { padding: 16px; border-radius: 12px; }
+        .stat-num { font-size: 1.5rem; }
+        .hero { padding: 40px 0 32px; }
+        .hero h1 { font-size: 1.75rem; margin-bottom: 8px; }
+        .hero p { font-size: 0.875rem; max-width: 100%; }
+        .hero-tag { font-size: 0.625rem; padding: 4px 10px; margin-bottom: 12px; }
         .ctrl { flex-direction: column; }
         .ctrl input { min-width: unset; width: 100%; }
         .tabs { overflow-x: auto; flex-wrap: nowrap; padding: 4px; }
-        .tab { white-space: nowrap; }
+        .tab { white-space: nowrap; font-size: 0.75rem; padding: 6px 10px; }
         nav { flex-wrap: wrap; gap: 8px; }
-        .nav-links { gap: 10px; font-size: 0.75rem; }
+        .nav-links { gap: 8px; font-size: 0.6875rem; }
+        .nav-links a { display: none; } /* hide GitHub/agdp.io links on mobile */
         .sec-header-row { flex-wrap: wrap; gap: 8px; }
-        .trend-card { flex: 0 0 160px; }
+        .trend-card { flex: 0 0 140px; padding: 12px; }
+        .trend-name { font-size: 0.75rem; }
+        .trend-rev { font-size: 0.875rem; }
+        .wrap { padding: 0 12px; }
+        .sec { padding: 32px 0; }
+        .sec-title { font-size: 1.125rem; }
+        .insight-item { padding: 10px 12px; }
+        .insight-val { font-size: 0.9375rem; }
+        .insight-lbl { font-size: 0.5625rem; }
+        #marketPulse { font-size: 0.75rem; padding: 8px 12px; }
+        .rev-dist-title { font-size: 0.6875rem; }
+        .card-metrics { gap: 8px; }
+        .cm-val { font-size: 0.9375rem; }
+        .install-card { padding: 24px 16px; }
+        .install-h { font-size: 1.125rem; }
+        .wash-toggle, .online-toggle { font-size: 0.75rem; padding: 4px 10px; }
+        .login-badge { padding: 4px 8px; font-size: 0.625rem; }
     }
     </style>
-    <script data-goatcounter="https://agdpstar.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
     <div class="wrap">
@@ -1181,6 +1202,12 @@
                 <div class="stat-num y" id="s4">—</div>
             </div>
         </div>
+
+        <!-- Mobile Jump to Rankings -->
+        <div id="mobileJump" style="display:none;margin-bottom:12px;text-align:center">
+            <button onclick="document.getElementById('ctrlSticky').scrollIntoView({behavior:'smooth'})" style="background:linear-gradient(135deg,rgba(34,211,238,0.15),rgba(139,92,246,0.15));border:1px solid rgba(34,211,238,0.25);border-radius:100px;padding:8px 20px;font-size:0.8125rem;font-weight:600;color:var(--neon);cursor:pointer;font-family:inherit;transition:all 0.2s">⬇ Jump to Rankings</button>
+        </div>
+        <script>if(window.innerWidth<=640)document.getElementById('mobileJump').style.display='block';</script>
 
         <!-- $2M Milestone (shown dynamically by JS) -->
         <div id="milestoneBanner" style="display:none;margin-bottom:16px;padding:12px 20px;background:linear-gradient(90deg,rgba(251,191,36,0.06),rgba(34,211,238,0.06));border:1px solid rgba(251,191,36,0.25);border-radius:14px;align-items:center;gap:10px;font-size:0.875rem">
