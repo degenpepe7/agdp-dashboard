@@ -1216,6 +1216,29 @@
             <span id="milestoneText" style="color:var(--sub)"></span>
         </div>
 
+        <!-- Ecosystem Health Gauge -->
+        <div id="healthGauge" style="display:none;margin-bottom:16px;padding:16px 20px;background:linear-gradient(135deg,rgba(34,211,238,0.04),rgba(139,92,246,0.04));border:1px solid var(--border);border-radius:14px">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+                    <svg viewBox="0 0 36 36" style="width:72px;height:72px;transform:rotate(-90deg)">
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
+                        <circle id="healthArc" cx="18" cy="18" r="15.9" fill="none" stroke="var(--neon)" stroke-width="3" stroke-dasharray="0 100" stroke-linecap="round" style="transition:stroke-dasharray 1.2s ease,stroke 0.5s"/>
+                    </svg>
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
+                        <span id="healthNum" style="font-size:1.125rem;font-weight:700;color:var(--neon);line-height:1">—</span>
+                        <span style="font-size:0.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">health</span>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:200px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                        <span style="font-weight:700;font-size:0.9375rem;color:var(--text)">Ecosystem Health</span>
+                        <span id="healthLabel" style="font-size:0.6875rem;padding:2px 8px;border-radius:100px;font-weight:600;background:rgba(34,211,238,0.15);color:var(--neon);border:1px solid rgba(34,211,238,0.3)">—</span>
+                    </div>
+                    <div id="healthBreakdown" style="display:flex;gap:12px;flex-wrap:wrap;font-size:0.75rem;color:var(--sub)"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Market Insights Strip -->
         <div class="insight-strip" id="insightStrip">
             <div class="insight-item" title="Percentage of all agents that have earned any revenue">
@@ -1877,12 +1900,57 @@
             // Market Pulse — dynamic one-liner
             updateMarketPulse(onlineCount, dormantWhales, dormantTotal);
 
+            // Ecosystem Health Gauge
+            updateHealthGauge(onlineCount, earningAgents, graduatedCount, concentration, r);
+
             // Render distribution bars
             renderRevDist();
             renderJobsDist();
 
             // Render trending section
             renderTrending();
+        }
+
+        // ========== ECOSYSTEM HEALTH GAUGE ==========
+        function updateHealthGauge(onlineCount, earningAgents, graduatedCount, concentration, agentsWithRate) {
+            const total = A.length || 1;
+            const onlinePct = onlineCount / total;
+            const earningPct = earningAgents / total;
+            const gradPct = graduatedCount / total;
+            const avgSuccess = agentsWithRate.length > 0 ? agentsWithRate.reduce((s,a) => s + gv(a,'successRate'), 0) / agentsWithRate.length / 100 : 0;
+            const deconcentration = 1 - Math.min(parseFloat(concentration) / 100, 1);
+
+            const factors = [
+                { name: 'Online', val: onlinePct, weight: 20 },
+                { name: 'Earning', val: earningPct, weight: 20 },
+                { name: 'Graduated', val: gradPct, weight: 20 },
+                { name: 'Success', val: avgSuccess, weight: 20 },
+                { name: 'Diversity', val: deconcentration, weight: 20 },
+            ];
+            const score = Math.round(factors.reduce((s, f) => s + f.val * f.weight, 0));
+
+            let color, label;
+            if (score >= 75) { color = '#4ade80'; label = 'Strong'; }
+            else if (score >= 50) { color = '#22d3ee'; label = 'Moderate'; }
+            else if (score >= 30) { color = '#fbbf24'; label = 'Developing'; }
+            else { color = '#f87171'; label = 'Early Stage'; }
+
+            const gauge = document.getElementById('healthGauge');
+            gauge.style.display = '';
+            document.getElementById('healthNum').textContent = score;
+            document.getElementById('healthNum').style.color = color;
+            document.getElementById('healthArc').setAttribute('stroke-dasharray', score + ' 100');
+            document.getElementById('healthArc').style.stroke = color;
+            const lbl = document.getElementById('healthLabel');
+            lbl.textContent = label;
+            lbl.style.color = color;
+            lbl.style.background = color + '1f';
+            lbl.style.borderColor = color + '4d';
+
+            document.getElementById('healthBreakdown').innerHTML = factors.map(f => {
+                const c = f.val >= 0.5 ? '#4ade80' : f.val >= 0.25 ? '#fbbf24' : '#f87171';
+                return `<span title="${f.name}: ${Math.round(f.val*100)}% → ${Math.round(f.val*f.weight)}/${f.weight}pts">${f.name} <b style="color:${c}">${Math.round(f.val*100)}%</b></span>`;
+            }).join('<span style="color:var(--muted)"> · </span>');
         }
 
         // ========== MARKET PULSE ==========
