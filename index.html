@@ -434,7 +434,7 @@
 
         .card-metrics {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 12px;
         }
 
@@ -753,7 +753,7 @@
             .hero h1 { font-size: 2.25rem; }
             .stats { grid-template-columns: 1fr 1fr; }
             .cards { grid-template-columns: 1fr; }
-            .card-metrics { grid-template-columns: repeat(2, 1fr); }
+            .card-metrics { grid-template-columns: repeat(3, 1fr); }
             .svc-list { grid-template-columns: 1fr 1fr; }
             .install-card { padding: 32px 20px; }
             .ctrl { flex-direction: column; }
@@ -1313,6 +1313,7 @@
                     <button class="tab" data-s="legit" onclick="ss('legit')">🛡 Legit</button>
                     <button class="tab" data-s="treasury" onclick="ss('treasury')">💰 Treasury</button>
                     <button class="tab" data-s="revbuyer" onclick="ss('revbuyer')">💎 Rev/Buyer</button>
+                    <button class="tab" data-s="revjob" onclick="ss('revjob')">💵 Rev/Job</button>
                     <button class="tab" data-s="velocity" onclick="ss('velocity')">⚡ Velocity</button>
                     <button class="tab" data-s="active" onclick="ss('active')">🟢 Active</button>
                     <button class="tab" data-s="new" onclick="ss('new')">🆕 New</button>
@@ -2261,6 +2262,10 @@
                         const rb=b2=>(()=>{const r=getRev(b2),bu=b2.uniqueBuyerCount||b2.metrics?.uniqueBuyerCount||0;return bu>0?r/bu:0})();
                         return rb(b)-rb(a);
                     }
+                    if(S==='revjob'){
+                        const rj=x=>{const r=getRev(x),j=gi(x,'successfulJobCount');return j>0?r/j:0;};
+                        return rj(b)-rj(a);
+                    }
                     if(S==='velocity')return getVelocity(b)-getVelocity(a);
                     if(S==='active'){
                         const aTime = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
@@ -2415,11 +2420,15 @@
                 const rpb = buyers > 0 ? rev / buyers : 0;
                 const rpbStr = rpb >= 1000 ? '$' + (rpb/1000).toFixed(1) + 'K' : rpb >= 1 ? '$' + rpb.toFixed(0) : rpb > 0 ? '$' + rpb.toFixed(2) : '—';
                 const rpbColor = rpb > 500 ? 'var(--gold)' : rpb > 0 ? 'var(--neon)' : 'var(--muted)';
+                const rpj = jobs > 0 ? rev / jobs : 0;
+                const rpjStr = rpj >= 1000 ? '$' + (rpj/1000).toFixed(1) + 'K' : rpj >= 1 ? '$' + rpj.toFixed(1) : rpj > 0 ? '$' + rpj.toFixed(2) : '—';
+                const rpjColor = rpj > 10 ? 'var(--gold)' : rpj > 1 ? 'var(--green)' : rpj > 0 ? 'var(--neon)' : 'var(--muted)';
                 metrics.innerHTML = `
                     <div title="${revTitle}"><div class="cm-label">${revLabel}</div><div class="cm-val green">$${rev>=1000?(rev/1000).toFixed(1)+'K':rev.toFixed(0)}</div></div>
                     <div><div class="cm-label">Jobs</div><div class="cm-val">${jobs>=1000?(jobs/1000).toFixed(1)+'K':jobs}</div></div>
                     <div><div class="cm-label">Buyers</div><div class="cm-val">${buyers>=1000?(buyers/1000).toFixed(1)+'K':buyers}</div></div>
                     <div title="Revenue per unique buyer — higher = whales or concentrated demand"><div class="cm-label">Rev/Buyer</div><div class="cm-val" style="color:${rpbColor}">${rpbStr}</div></div>
+                    <div title="Revenue per completed job — pricing efficiency"><div class="cm-label">Rev/Job</div><div class="cm-val" style="color:${rpjColor}">${rpjStr}</div></div>
                     <div><div class="cm-label">Success</div><div class="cm-val">${succ.toFixed(0)}%</div></div>
                 `;
                 
