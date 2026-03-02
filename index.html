@@ -1169,6 +1169,7 @@
             <div class="nav-links">
                 <div class="live-badge"><span class="live-dot"></span>Live <span id="lastUpdated" style="margin-left:4px;color:var(--sub);font-weight:400"></span><span id="refreshCountdown" style="margin-left:6px;color:var(--muted);font-weight:400;font-size:0.625rem"></span></div>
                 <button id="refreshBtn" onclick="manualRefresh()" title="Refresh data now" style="display:none;background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.2);border-radius:100px;padding:4px 10px;font-size:0.6875rem;font-weight:600;color:var(--neon);cursor:pointer;transition:all 0.2s;font-family:inherit" onmouseenter="this.style.background='rgba(34,211,238,0.2)'" onmouseleave="this.style.background='rgba(34,211,238,0.1)'">↻ Refresh</button>
+                <button id="shareBtn" onclick="shareView()" title="Copy shareable link with current filters" style="background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.2);border-radius:100px;padding:4px 10px;font-size:0.6875rem;font-weight:600;color:var(--neon);cursor:pointer;transition:all 0.2s;font-family:inherit" onmouseenter="this.style.background='rgba(34,211,238,0.2)'" onmouseleave="this.style.background='rgba(34,211,238,0.1)'">🔗 Share View</button>
                 <button id="exportBtn" onclick="exportCSV()" title="Export agent data as CSV" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:100px;padding:4px 10px;font-size:0.6875rem;font-weight:600;color:var(--accent2);cursor:pointer;transition:all 0.2s;font-family:inherit" onmouseenter="this.style.background='rgba(139,92,246,0.2)'" onmouseleave="this.style.background='rgba(139,92,246,0.1)'">📥 Export CSV</button>
                 <div class="login-badge" id="loginBadge" onclick="showLogin()">
                     <span id="loginText">🔒 Login to Review</span>
@@ -1201,6 +1202,16 @@
                 <div class="stat-label">Avg Success</div>
                 <div class="stat-num y" id="s4">—</div>
             </div>
+        </div>
+
+        <!-- Revenue Concentration Bar -->
+        <div id="revConcentrationBar" style="display:none;margin-bottom:16px;padding:14px 20px;background:var(--card);border:1px solid var(--border);border-radius:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <span style="font-size:0.8125rem;font-weight:600;color:var(--sub)">Revenue Distribution</span>
+                <span id="revHHI" style="font-size:0.6875rem;padding:2px 8px;border-radius:100px;font-weight:600;background:rgba(251,191,36,0.1);color:var(--gold);border:1px solid rgba(251,191,36,0.2)" title="Herfindahl-Hirschman Index — measures market concentration. >2500 = highly concentrated">HHI: —</span>
+            </div>
+            <div id="revBarContainer" style="display:flex;height:28px;border-radius:8px;overflow:hidden;gap:1px"></div>
+            <div id="revBarLegend" style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:8px;font-size:0.6875rem;color:var(--sub)"></div>
         </div>
 
         <!-- Mobile Jump to Rankings -->
@@ -1284,6 +1295,14 @@
             <div class="insight-item" title="Agents with ERC-8004 on-chain identity registration — verified agent identity on Base">
                 <span class="insight-val n" id="ins10">—</span>
                 <span class="insight-lbl">🔗 On-Chain IDs</span>
+            </div>
+            <div class="insight-item" title="Total gross agentic volume (before wash filtering) — compare with Total Revenue to see the wash gap">
+                <span class="insight-val n" id="ins11">—</span>
+                <span class="insight-lbl">📊 Gross Volume</span>
+            </div>
+            <div class="insight-item" title="Percentage of gross volume that is wash trading — higher = more fake activity. (Gross - Net) / Gross">
+                <span class="insight-val r" id="ins12">—</span>
+                <span class="insight-lbl">🧹 Wash Gap</span>
             </div>
         </div>
 
@@ -1534,11 +1553,52 @@
         const fa=`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2318181b'/><text y='62' x='50' text-anchor='middle' font-size='36' fill='%2352525b'>◆</text></svg>`;
 
         // ========== INIT ==========
+        // ========== SHAREABLE URL STATE ==========
+        function syncHashState() {
+            const p = new URLSearchParams();
+            if (S !== 'revenue') p.set('sort', S);
+            const q = document.getElementById('q')?.value?.trim();
+            if (q) p.set('q', q);
+            if (filterCat) p.set('cat', filterCat);
+            if (filterOnline) p.set('online', '1');
+            if (filterGrad) p.set('grad', '1');
+            if (filterWash) p.set('wash', '1');
+            if (filterHideTest) p.set('clean', '1');
+            const h = p.toString();
+            history.replaceState(null, '', h ? '#' + h : location.pathname);
+        }
+
+        function restoreHashState() {
+            const h = location.hash.slice(1);
+            if (!h) return;
+            const p = new URLSearchParams(h);
+            if (p.has('sort')) { S = p.get('sort'); document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.s === S)); }
+            if (p.has('q')) { document.getElementById('q').value = p.get('q'); }
+            if (p.get('cat')) { filterCat = p.get('cat'); }
+            if (p.get('online') === '1') { filterOnline = true; document.getElementById('onlineToggle')?.classList.add('active'); }
+            if (p.get('grad') === '1') { filterGrad = true; const b = document.getElementById('gradToggle'); if(b){b.classList.add('active');b.style.background='rgba(251,191,36,0.15)';b.style.borderColor='rgba(251,191,36,0.5)';} }
+            if (p.get('wash') === '1') { filterWash = true; document.getElementById('washCb').checked = true; document.getElementById('washToggle')?.classList.add('active'); }
+            if (p.get('clean') === '1') { filterHideTest = true; const b = document.getElementById('testToggle'); if(b){b.classList.add('active');b.style.background='rgba(244,114,182,0.15)';b.style.borderColor='rgba(244,114,182,0.5)';} }
+        }
+
+        function shareView() {
+            syncHashState();
+            const url = location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById('shareBtn');
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => { btn.textContent = '🔗 Share View'; }, 2000);
+            }).catch(() => {
+                prompt('Copy this link:', url);
+            });
+        }
+
         document.addEventListener('DOMContentLoaded',()=>{
+            restoreHashState();
             loadUser();
             ld();
             setInterval(ld,300000);
-            document.getElementById('q').addEventListener('input',()=>{visibleCount=20;render()});
+            document.getElementById('q').addEventListener('input',()=>{visibleCount=20;render();syncHashState()});
             lR();
             // Sticky controls: add shadow when stuck
             const stickyEl = document.getElementById('ctrlSticky');
@@ -1843,6 +1903,51 @@
             const totalBuyers = A.reduce((s,a) => s + (a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0), 0);
             document.getElementById('ins4').textContent = totalBuyers.toLocaleString();
 
+            // ---- Revenue Concentration Bar ----
+            {
+                const barColors = ['#22d3ee','#8b5cf6','#f472b6','#fbbf24','#4ade80','#f87171','#a78bfa','#34d399'];
+                const barEl = document.getElementById('revBarContainer');
+                const legendEl = document.getElementById('revBarLegend');
+                const hhiEl = document.getElementById('revHHI');
+                const wrapper = document.getElementById('revConcentrationBar');
+                if(totalRevAll > 0) {
+                    wrapper.style.display = 'block';
+                    barEl.innerHTML = '';
+                    legendEl.innerHTML = '';
+                    const topN = sortedByRev.filter(a => getRev(a) > 0).slice(0, 7);
+                    const topNRev = topN.reduce((s,a) => s + getRev(a), 0);
+                    const othersRev = totalRevAll - topNRev;
+                    // HHI calculation
+                    const shares = A.map(a => getRev(a)/totalRevAll*100);
+                    const hhi = Math.round(shares.reduce((s,sh) => s + sh*sh, 0));
+                    hhiEl.textContent = 'HHI: ' + hhi.toLocaleString();
+                    hhiEl.title = `HHI: ${hhi} — ` + (hhi > 2500 ? 'Highly concentrated' : hhi > 1500 ? 'Moderately concentrated' : 'Competitive');
+                    if(hhi > 2500) { hhiEl.style.color='var(--red)'; hhiEl.style.borderColor='rgba(248,113,113,0.3)'; hhiEl.style.background='rgba(248,113,113,0.1)'; }
+                    else if(hhi > 1500) { hhiEl.style.color='var(--gold)'; }
+                    else { hhiEl.style.color='var(--green)'; hhiEl.style.borderColor='rgba(74,222,128,0.3)'; hhiEl.style.background='rgba(74,222,128,0.1)'; }
+                    topN.forEach((a, i) => {
+                        const pct = getRev(a)/totalRevAll*100;
+                        const seg = document.createElement('div');
+                        seg.style.cssText = `flex:${pct};background:${barColors[i%barColors.length]};min-width:2px;transition:flex 0.6s ease;cursor:pointer;position:relative`;
+                        seg.title = `${a.name}: $${Math.floor(getRev(a)).toLocaleString()} (${pct.toFixed(1)}%)`;
+                        barEl.appendChild(seg);
+                        const leg = document.createElement('span');
+                        leg.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${barColors[i%barColors.length]};margin-right:4px"></span>${a.name} ${pct.toFixed(1)}%`;
+                        legendEl.appendChild(leg);
+                    });
+                    if(othersRev > 0) {
+                        const pct = othersRev/totalRevAll*100;
+                        const seg = document.createElement('div');
+                        seg.style.cssText = `flex:${pct};background:var(--muted);min-width:2px;transition:flex 0.6s ease`;
+                        seg.title = `Others: $${Math.floor(othersRev).toLocaleString()} (${pct.toFixed(1)}%)`;
+                        barEl.appendChild(seg);
+                        const leg = document.createElement('span');
+                        leg.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--muted);margin-right:4px"></span>Others ${pct.toFixed(1)}%`;
+                        legendEl.appendChild(leg);
+                    }
+                }
+            }
+
             // Wash suspects: revenue > $100, buyers <= 5
             const washSuspects = A.filter(a => {
                 const rev = getRev(a);
@@ -1896,6 +2001,25 @@
             const ins10El = document.getElementById('ins10');
             ins10El.textContent = erc8004Count;
             ins10El.title = `${erc8004Count} agent${erc8004Count!==1?'s':''} with ERC-8004 on-chain identity registered on Base`;
+
+            // Gross Volume & Wash Gap
+            const totalGross = A.reduce((s,a) => {
+                const g = parseFloat(a.grossAgenticAmount || a.metrics?.grossAgenticAmount) || 0;
+                return s + (g >= 99999999 ? 0 : g); // skip $100M sentinel agents
+            }, 0);
+            const ins11El = document.getElementById('ins11');
+            if (totalGross >= 1000000) ins11El.textContent = '$' + (totalGross/1000000).toFixed(2) + 'M';
+            else if (totalGross >= 1000) ins11El.textContent = '$' + (totalGross/1000).toFixed(1) + 'K';
+            else ins11El.textContent = '$' + Math.floor(totalGross);
+            ins11El.title = `Gross agentic volume: $${totalGross.toLocaleString(undefined,{maximumFractionDigits:0})} (includes wash trading)`;
+
+            const washGapPct = totalGross > 0 ? ((totalGross - totalRevAll) / totalGross * 100) : 0;
+            const ins12El = document.getElementById('ins12');
+            ins12El.textContent = washGapPct.toFixed(1) + '%';
+            ins12El.title = `Wash gap: ${washGapPct.toFixed(1)}% of gross volume is not real revenue\nGross: $${Math.floor(totalGross).toLocaleString()} → Net: $${Math.floor(totalRevAll).toLocaleString()}`;
+            if (washGapPct < 20) { ins12El.className = 'insight-val g'; }
+            else if (washGapPct < 50) { ins12El.className = 'insight-val y'; }
+            else { ins12El.className = 'insight-val r'; }
 
             // Market Pulse — dynamic one-liner
             updateMarketPulse(onlineCount, dormantWhales, dormantTotal);
@@ -2216,14 +2340,14 @@
         }
 
         // ========== SORT / FILTER ==========
-        function toggleWash(){filterWash=!filterWash;document.getElementById('washCb').checked=filterWash;document.getElementById('washToggle').classList.toggle('active',filterWash);visibleCount=20;render()}
-        function ss(s){S=s;visibleCount=20;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));render()}
+        function toggleWash(){filterWash=!filterWash;document.getElementById('washCb').checked=filterWash;document.getElementById('washToggle').classList.toggle('active',filterWash);visibleCount=20;render();syncHashState()}
+        function ss(s){S=s;visibleCount=20;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));render();syncHashState()}
 
         function setCat(cat) {
             filterCat = (filterCat === cat) ? '' : cat; // toggle
             visibleCount = 20;
             document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('on', c.dataset.cat === filterCat));
-            render();
+            render();syncHashState();
         }
 
         function toggleOnline() {
@@ -2231,7 +2355,7 @@
             const btn = document.getElementById('onlineToggle');
             btn.classList.toggle('active', filterOnline);
             visibleCount = 20;
-            render();
+            render();syncHashState();
         }
 
         function toggleGrad() {
@@ -2241,7 +2365,7 @@
             if(filterGrad) { btn.style.background = 'rgba(251,191,36,0.15)'; btn.style.borderColor = 'rgba(251,191,36,0.5)'; }
             else { btn.style.background = ''; btn.style.borderColor = 'rgba(251,191,36,0.3)'; }
             visibleCount = 20;
-            render();
+            render();syncHashState();
         }
 
         // Test/Buyer agent detection
@@ -2260,7 +2384,7 @@
             if(filterHideTest) { btn.style.background = 'rgba(244,114,182,0.15)'; btn.style.borderColor = 'rgba(244,114,182,0.5)'; }
             else { btn.style.background = ''; btn.style.borderColor = 'rgba(244,114,182,0.3)'; }
             visibleCount = 20;
-            render();
+            render();syncHashState();
         }
 
         function buildCatFilter() {
