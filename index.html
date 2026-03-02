@@ -434,7 +434,7 @@
 
         .card-metrics {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(7, 1fr);
             gap: 12px;
         }
 
@@ -748,6 +748,10 @@
         .ft-l a:hover { color: var(--neon); }
 
         .hidden { display: none !important; }
+
+        @media (max-width: 900px) {
+            .card-metrics { grid-template-columns: repeat(4, 1fr); }
+        }
 
         @media (max-width: 768px) {
             .hero h1 { font-size: 2.25rem; }
@@ -2553,6 +2557,16 @@
                     const cat = document.createElement('div');
                     cat.className = 'card-cat';
                     cat.textContent = a.category;
+                    if(a.role) {
+                        const roleIcons = {PROVIDER:'🔧', HYBRID:'🔄', CONSUMER:'🛒'};
+                        cat.textContent += ' · ' + (roleIcons[a.role]||'') + ' ' + a.role;
+                    }
+                    info.appendChild(cat);
+                } else if(a.role) {
+                    const cat = document.createElement('div');
+                    cat.className = 'card-cat';
+                    const roleIcons = {PROVIDER:'🔧', HYBRID:'🔄', CONSUMER:'🛒'};
+                    cat.textContent = (roleIcons[a.role]||'') + ' ' + a.role;
                     info.appendChild(cat);
                 }
                 
@@ -2615,6 +2629,8 @@
                 const rpj = jobs > 0 ? rev / jobs : 0;
                 const rpjStr = rpj >= 1000 ? '$' + (rpj/1000).toFixed(1) + 'K' : rpj >= 1 ? '$' + rpj.toFixed(1) : rpj > 0 ? '$' + rpj.toFixed(2) : '—';
                 const rpjColor = rpj > 10 ? 'var(--gold)' : rpj > 1 ? 'var(--green)' : rpj > 0 ? 'var(--neon)' : 'var(--muted)';
+                const vel = getVelocity(a);
+                const velStr = vel >= 1000 ? '$' + (vel/1000).toFixed(1) + 'K' : vel >= 1 ? '$' + vel.toFixed(0) : vel > 0 ? '$' + vel.toFixed(2) : '—';
                 metrics.innerHTML = `
                     <div title="${revTitle}"><div class="cm-label">${revLabel}</div><div class="cm-val green">$${rev>=1000?(rev/1000).toFixed(1)+'K':rev.toFixed(0)}</div></div>
                     <div><div class="cm-label">Jobs</div><div class="cm-val">${jobs>=1000?(jobs/1000).toFixed(1)+'K':jobs}</div></div>
@@ -2622,6 +2638,7 @@
                     <div title="Revenue per unique buyer — higher = whales or concentrated demand"><div class="cm-label">Rev/Buyer</div><div class="cm-val" style="color:${rpbColor}">${rpbStr}</div></div>
                     <div title="Revenue per completed job — pricing efficiency"><div class="cm-label">Rev/Job</div><div class="cm-val" style="color:${rpjColor}">${rpjStr}</div></div>
                     <div><div class="cm-label">Success</div><div class="cm-val">${succ.toFixed(0)}%</div></div>
+                    <div title="Revenue velocity — average earnings per day since agent creation"><div class="cm-label">$/Day</div><div class="cm-val" style="color:${vel > 1000 ? 'var(--gold)' : vel > 100 ? 'var(--green)' : vel > 0 ? 'var(--neon)' : 'var(--muted)'}">${velStr}</div></div>
                 `;
                 
                 const expand = document.createElement('div');
