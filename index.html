@@ -1671,17 +1671,7 @@
             const btn = document.getElementById('refreshBtn');
             if (btn) { btn.textContent = '↻ Refreshing...'; btn.disabled = true; }
             try {
-                let p = 1, more = 1, newA = [];
-                while (more) {
-                    const r = await fetch(`https://acpx.virtuals.io/api/agents?pagination%5BpageSize%5D=100&pagination%5Bpage%5D=${p}`);
-                    const d = await r.json();
-                    if (d.data?.length) {
-                        newA = newA.concat(d.data);
-                        d.data.forEach(a => agentCache.set(a.id, a));
-                        p++;
-                        if (d.meta?.pagination?.pageCount && p > d.meta.pagination.pageCount) more = 0;
-                    } else more = 0;
-                }
+                const newA = await fetchAllAgentsParallel();
                 if (newA.length > 0) {
                     A = newA;
                     lastFetchTime = new Date();
@@ -1993,49 +1983,79 @@
         }
 
         // ========== LOAD AGENTS ==========
+        // ========== PARALLEL PAGE FETCHER ==========
+        // Fetches all agent pages in parallel batches for ~10x faster loading
+        const PARALLEL_BATCH = 15; // concurrent requests per batch
+        const PAGE_SIZE = 100;
+        const API_BASE = 'https://acpx.virtuals.io/api/agents';
+
+        async function fetchPage(page) {
+            const r = await fetch(`${API_BASE}?pagination%5BpageSize%5D=${PAGE_SIZE}&pagination%5Bpage%5D=${page}`);
+            if (!r.ok) throw new Error(`Page ${page} failed: ${r.status}`);
+            return r.json();
+        }
+
+        async function fetchAllAgentsParallel(progressCb) {
+            // Step 1: fetch page 1 to discover total pages
+            const first = await fetchPage(1);
+            const totalPages = first.meta?.pagination?.pageCount || 1;
+            const totalAgents = first.meta?.pagination?.total || first.data?.length || 0;
+            let allAgents = [...(first.data || [])];
+            first.data?.forEach(a => agentCache.set(a.id, a));
+            if (progressCb) progressCb(1, totalPages, allAgents.length, totalAgents);
+            if (totalPages <= 1) return allAgents;
+
+            // Step 2: fetch remaining pages in parallel batches
+            let pagesLoaded = 1;
+            for (let batchStart = 2; batchStart <= totalPages; batchStart += PARALLEL_BATCH) {
+                const batchEnd = Math.min(batchStart + PARALLEL_BATCH - 1, totalPages);
+                const promises = [];
+                for (let p = batchStart; p <= batchEnd; p++) {
+                    promises.push(
+                        fetchPage(p).catch(err => {
+                            console.warn(`Page ${p} failed, retrying...`, err);
+                            return new Promise(res => setTimeout(res, 500)).then(() => fetchPage(p)).catch(() => ({ data: [] }));
+                        })
+                    );
+                }
+                const results = await Promise.all(promises);
+                for (const d of results) {
+                    if (d.data?.length) {
+                        allAgents = allAgents.concat(d.data);
+                        d.data.forEach(a => agentCache.set(a.id, a));
+                    }
+                }
+                pagesLoaded += results.length;
+                if (progressCb) progressCb(pagesLoaded, totalPages, allAgents.length, totalAgents);
+            }
+            return allAgents;
+        }
+
         async function ld(){
             try{
                 const ldText = document.getElementById('ldText');
                 const ldBarWrap = document.getElementById('ldBarWrap');
                 const ldBar = document.getElementById('ldBar');
                 const ldStats = document.getElementById('ldStats');
-                let p=1,more=1,totalPages=null,totalAgents=0;A=[];
+                A=[];
                 const startTime = Date.now();
-                while(more){
-                    const r=await fetch(`https://acpx.virtuals.io/api/agents?pagination%5BpageSize%5D=100&pagination%5Bpage%5D=${p}`);
-                    const d=await r.json();
-                    
-                    // Get total pages from first response
-                    if(p===1 && d.meta?.pagination?.pageCount){
-                        totalPages = d.meta.pagination.pageCount;
-                        totalAgents = d.meta.pagination.total;
-                        ldBarWrap.style.display = 'block';
-                        ldStats.style.display = 'block';
-                        console.log(`Loading ${totalAgents} agents across ${totalPages} pages...`);
+                ldBarWrap.style.display = 'block';
+                ldStats.style.display = 'block';
+
+                A = await fetchAllAgentsParallel((pagesLoaded, totalPages, agentCount, totalAgents) => {
+                    const pct = Math.min(100, (pagesLoaded / totalPages * 100));
+                    ldBar.style.width = pct.toFixed(1) + '%';
+                    ldText.textContent = `Loading agents... ${agentCount.toLocaleString()} of ${totalAgents.toLocaleString()}`;
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                    const rate = agentCount > 0 ? (agentCount / parseFloat(elapsed)).toFixed(0) : 0;
+                    const eta = rate > 0 ? Math.ceil((totalAgents - agentCount) / rate) : '?';
+                    ldStats.textContent = `${pagesLoaded}/${totalPages} pages (${PARALLEL_BATCH}× parallel) · ${elapsed}s · ~${eta}s left`;
+                    if (pagesLoaded === 1) {
+                        console.log(`Loading ${totalAgents} agents across ${totalPages} pages (${PARALLEL_BATCH}× parallel)...`);
                     }
-                    
-                    if(d.data?.length){
-                        A=A.concat(d.data);
-                        // Cache agents for review lookup
-                        d.data.forEach(a => agentCache.set(a.id, a));
-                        
-                        // Update progress bar
-                        if(totalPages){
-                            const pct = Math.min(100, (p / totalPages * 100));
-                            ldBar.style.width = pct.toFixed(1) + '%';
-                            ldText.textContent = `Loading agents... ${A.length.toLocaleString()} of ${totalAgents.toLocaleString()}`;
-                            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-                            const rate = (A.length / parseFloat(elapsed)).toFixed(0);
-                            const eta = rate > 0 ? Math.ceil((totalAgents - A.length) / rate) : '?';
-                            ldStats.textContent = `Page ${p}/${totalPages} · ${elapsed}s elapsed · ~${eta}s remaining`;
-                        }
-                        
-                        p++;
-                        // Stop if we've loaded all pages
-                        if(totalPages && p > totalPages) more=0;
-                    }else more=0;
-                }
-                console.log(`Loaded ${A.length} agents successfully`);
+                });
+
+                console.log(`Loaded ${A.length} agents in ${((Date.now()-startTime)/1000).toFixed(1)}s (parallel)`);
                 lastFetchTime = new Date();
                 updateLastUpdated();
                 st();render();svc();buildCatFilter();
