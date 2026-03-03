@@ -1163,6 +1163,201 @@
         .install-h { font-size: 1.125rem; }
         .wash-toggle, .online-toggle { font-size: 0.75rem; padding: 4px 10px; }
         .login-badge { padding: 4px 8px; font-size: 0.625rem; }
+        .compare-bar { display: none; }
+        .compare-bar .compare-avatars { gap: 4px; }
+    }
+
+    /* ===== Agent Compare Mode ===== */
+    .compare-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: rgba(139,92,246,0.08);
+        color: var(--muted);
+        font-size: 0.75rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        z-index: 5;
+        opacity: 0;
+    }
+    .agent-card:hover .compare-btn { opacity: 1; }
+    .compare-btn:hover { background: rgba(139,92,246,0.2); color: var(--accent2); border-color: rgba(139,92,246,0.4); }
+    .compare-btn.selected { opacity: 1; background: rgba(34,211,238,0.2); color: var(--neon); border-color: rgba(34,211,238,0.4); }
+
+    .compare-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(24,24,27,0.95);
+        backdrop-filter: blur(16px);
+        border-top: 1px solid rgba(34,211,238,0.3);
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        z-index: 1000;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+    }
+    .compare-bar.visible { transform: translateY(0); }
+    .compare-avatars { display: flex; gap: 8px; align-items: center; }
+    .compare-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px 4px 4px;
+        background: var(--card2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.75rem;
+        color: var(--text);
+        animation: fadeInUp 0.2s ease;
+    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .compare-chip img { width: 24px; height: 24px; border-radius: 6px; }
+    .compare-chip .remove-chip { cursor: pointer; color: var(--muted); margin-left: 4px; font-size: 0.875rem; }
+    .compare-chip .remove-chip:hover { color: var(--red); }
+    .compare-go {
+        padding: 8px 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(34,211,238,0.4);
+        background: linear-gradient(135deg, rgba(34,211,238,0.15), rgba(139,92,246,0.15));
+        color: var(--neon);
+        font-weight: 700;
+        font-size: 0.8125rem;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.2s;
+    }
+    .compare-go:hover { background: linear-gradient(135deg, rgba(34,211,238,0.25), rgba(139,92,246,0.25)); }
+    .compare-go:disabled { opacity: 0.4; cursor: not-allowed; }
+    .compare-clear {
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--muted);
+        font-size: 0.75rem;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.2s;
+    }
+    .compare-clear:hover { color: var(--red); border-color: rgba(248,113,113,0.3); }
+
+    /* Compare Modal */
+    .compare-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+    .compare-panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        max-width: 900px;
+        width: 100%;
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: 32px;
+        position: relative;
+    }
+    .compare-panel::-webkit-scrollbar { width: 6px; }
+    .compare-panel::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+    .compare-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--sub);
+        font-size: 1.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .compare-close:hover { color: var(--red); }
+    .compare-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .compare-grid {
+        display: grid;
+        gap: 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .compare-row {
+        display: grid;
+        border-bottom: 1px solid var(--border);
+    }
+    .compare-row:last-child { border-bottom: none; }
+    .compare-cell {
+        padding: 12px 16px;
+        font-size: 0.8125rem;
+        border-right: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    .compare-cell:last-child { border-right: none; }
+    .compare-cell.label-cell {
+        background: rgba(139,92,246,0.06);
+        color: var(--sub);
+        font-weight: 600;
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        justify-content: flex-start;
+    }
+    .compare-cell.header-cell {
+        background: rgba(34,211,238,0.04);
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px;
+    }
+    .compare-cell.header-cell img {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+    }
+    .compare-cell.header-cell .name {
+        font-weight: 700;
+        font-size: 0.875rem;
+        color: var(--text);
+    }
+    .compare-cell .best { color: var(--green); font-weight: 700; }
+    .compare-cell .worst { color: var(--red); opacity: 0.7; }
+    @media (max-width: 640px) {
+        .compare-panel { padding: 20px 12px; border-radius: 16px; }
+        .compare-cell { padding: 8px 6px; font-size: 0.6875rem; }
+        .compare-cell.header-cell img { width: 32px; height: 32px; }
+        .compare-cell.header-cell .name { font-size: 0.75rem; }
     }
     </style>
 </head>
@@ -2486,7 +2681,17 @@
                 
                 const card = document.createElement('div');
                 card.className = `agent-card ${sp?'vip':''}`;
+                card.style.position = 'relative';
                 card.onclick = () => tgl(card);
+
+                // Compare button
+                const cmpBtn = document.createElement('button');
+                cmpBtn.className = 'compare-btn' + (compareList.includes(a.id) ? ' selected' : '');
+                cmpBtn.dataset.agentId = a.id;
+                cmpBtn.textContent = compareList.includes(a.id) ? '✓' : '⚖';
+                cmpBtn.title = 'Add to comparison';
+                cmpBtn.onclick = (e) => toggleCompare(a.id, e);
+                card.appendChild(cmpBtn);
                 
                 const top = document.createElement('div');
                 top.className = 'card-top';
@@ -3052,6 +3257,186 @@
             setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; btn.textContent = '📥 Export CSV'; }, 2000);
         }
 
+        // ========== AGENT COMPARE MODE ==========
+        let compareList = [];
+        const MAX_COMPARE = 4;
+
+        function toggleCompare(agentId, event) {
+            event.stopPropagation();
+            const idx = compareList.indexOf(agentId);
+            if (idx >= 0) {
+                compareList.splice(idx, 1);
+            } else {
+                if (compareList.length >= MAX_COMPARE) return;
+                compareList.push(agentId);
+            }
+            updateCompareUI();
+        }
+
+        function removeFromCompare(agentId) {
+            compareList = compareList.filter(id => id !== agentId);
+            updateCompareUI();
+        }
+
+        function clearCompare() {
+            compareList = [];
+            updateCompareUI();
+        }
+
+        function updateCompareUI() {
+            // Update card buttons
+            document.querySelectorAll('.compare-btn').forEach(btn => {
+                const id = parseInt(btn.dataset.agentId);
+                btn.classList.toggle('selected', compareList.includes(id));
+                btn.textContent = compareList.includes(id) ? '✓' : '⚖';
+            });
+            // Update bar
+            const bar = document.getElementById('compareBar');
+            const chips = document.getElementById('compareChips');
+            const goBtn = document.getElementById('compareGoBtn');
+            if (compareList.length > 0) {
+                bar.classList.add('visible');
+                chips.innerHTML = '';
+                compareList.forEach(id => {
+                    const a = A.find(x => x.id === id);
+                    if (!a) return;
+                    const chip = document.createElement('div');
+                    chip.className = 'compare-chip';
+                    const img = document.createElement('img');
+                    img.src = a.profilePic || fa;
+                    img.onerror = () => img.src = fa;
+                    const nm = document.createElement('span');
+                    nm.textContent = a.name;
+                    const rm = document.createElement('span');
+                    rm.className = 'remove-chip';
+                    rm.textContent = '×';
+                    rm.onclick = () => removeFromCompare(id);
+                    chip.appendChild(img);
+                    chip.appendChild(nm);
+                    chip.appendChild(rm);
+                    chips.appendChild(chip);
+                });
+                goBtn.disabled = compareList.length < 2;
+            } else {
+                bar.classList.remove('visible');
+            }
+        }
+
+        function showCompare() {
+            if (compareList.length < 2) return;
+            const agents = compareList.map(id => A.find(x => x.id === id)).filter(Boolean);
+            const cols = agents.length + 1; // label + agents
+
+            const overlay = document.createElement('div');
+            overlay.className = 'compare-modal';
+            overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+            const panel = document.createElement('div');
+            panel.className = 'compare-panel';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'compare-close';
+            closeBtn.textContent = '×';
+            closeBtn.onclick = () => overlay.remove();
+            panel.appendChild(closeBtn);
+
+            const title = document.createElement('div');
+            title.className = 'compare-title';
+            title.textContent = '⚖ Agent Comparison';
+            panel.appendChild(title);
+
+            const grid = document.createElement('div');
+            grid.className = 'compare-grid';
+            grid.style.gridTemplateColumns = `140px repeat(${agents.length}, 1fr)`;
+
+            // Helper to mark best/worst
+            function markBest(vals, higherIsBetter) {
+                if (vals.every(v => v === vals[0])) return vals.map(() => '');
+                const best = higherIsBetter ? Math.max(...vals) : Math.min(...vals);
+                return vals.map(v => v === best ? 'best' : '');
+            }
+
+            // Header row
+            const headerRow = document.createElement('div');
+            headerRow.className = 'compare-row';
+            headerRow.style.gridTemplateColumns = `140px repeat(${agents.length}, 1fr)`;
+            const emptyLabel = document.createElement('div');
+            emptyLabel.className = 'compare-cell label-cell';
+            emptyLabel.textContent = 'Agent';
+            headerRow.appendChild(emptyLabel);
+            agents.forEach(a => {
+                const cell = document.createElement('div');
+                cell.className = 'compare-cell header-cell';
+                const img = document.createElement('img');
+                img.src = a.profilePic || fa;
+                img.onerror = () => img.src = fa;
+                const nm = document.createElement('div');
+                nm.className = 'name';
+                nm.textContent = a.name;
+                const statusDot = document.createElement('div');
+                const isOn = a.isOnline || a.metrics?.isOnline;
+                statusDot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${isOn ? 'var(--green)' : 'var(--muted)'}`;
+                cell.appendChild(img);
+                cell.appendChild(nm);
+                cell.appendChild(statusDot);
+                headerRow.appendChild(cell);
+            });
+            grid.appendChild(headerRow);
+
+            // Metrics rows
+            const metrics = [
+                { label: 'Revenue', fn: a => getRev(a), fmt: v => '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'K' : v.toFixed(0)), higher: true },
+                { label: 'Jobs Done', fn: a => gi(a, 'successfulJobCount'), fmt: v => v >= 1000 ? (v/1000).toFixed(1) + 'K' : v.toString(), higher: true },
+                { label: 'Success Rate', fn: a => gv(a, 'successRate'), fmt: v => v.toFixed(1) + '%', higher: true },
+                { label: 'Unique Buyers', fn: a => a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0, fmt: v => v >= 1000 ? (v/1000).toFixed(1) + 'K' : v.toString(), higher: true },
+                { label: 'Rev/Buyer', fn: a => { const r = getRev(a), b = a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0; return b > 0 ? r/b : 0; }, fmt: v => v > 0 ? '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'K' : v.toFixed(0)) : '—', higher: true },
+                { label: 'Rev/Job', fn: a => { const r = getRev(a), j = gi(a, 'successfulJobCount'); return j > 0 ? r/j : 0; }, fmt: v => v > 0 ? '$' + v.toFixed(2) : '—', higher: true },
+                { label: '$/Day Velocity', fn: a => getVelocity(a), fmt: v => v > 0 ? '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'K' : v.toFixed(1)) : '—', higher: true },
+                { label: 'Rating', fn: a => gR(a.id), fmt: v => v > 0 ? '★ ' + v.toFixed(1) : '—', higher: true },
+                { label: 'Wallet Balance', fn: a => parseFloat(a.walletBalance) || 0, fmt: v => v > 0 ? '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'K' : v.toFixed(0)) : '—', higher: true },
+                { label: 'Transactions', fn: a => a.transactionCount || a.metrics?.transactionCount || 0, fmt: v => v >= 1000 ? (v/1000).toFixed(1) + 'K' : v.toString(), higher: true },
+                { label: 'Legit Score', fn: a => getLegitScore(a), fmt: v => v.label, higher: null },
+                { label: 'Category', fn: a => a.category || 'Other', fmt: v => v, higher: null },
+                { label: 'Graduated', fn: a => a.hasGraduated ? 1 : 0, fmt: v => v ? '🎓 Yes' : 'No', higher: null },
+                { label: 'ERC-8004', fn: a => a.latestErc8004 ? 1 : 0, fmt: v => v ? '🔗 Yes' : 'No', higher: null },
+            ];
+
+            metrics.forEach(m => {
+                const row = document.createElement('div');
+                row.className = 'compare-row';
+                row.style.gridTemplateColumns = `140px repeat(${agents.length}, 1fr)`;
+
+                const labelCell = document.createElement('div');
+                labelCell.className = 'compare-cell label-cell';
+                labelCell.textContent = m.label;
+                row.appendChild(labelCell);
+
+                const vals = agents.map(a => m.fn(a));
+                const numericVals = m.higher !== null ? vals.map(v => typeof v === 'number' ? v : 0) : null;
+                const marks = numericVals ? markBest(numericVals, m.higher) : vals.map(() => '');
+
+                agents.forEach((a, i) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'compare-cell';
+                    const span = document.createElement('span');
+                    if (m.label === 'Legit Score') {
+                        span.className = 'legit-badge ' + vals[i].cls;
+                        span.textContent = vals[i].label;
+                    } else {
+                        span.textContent = m.fmt(vals[i]);
+                        if (marks[i] === 'best') span.className = 'best';
+                    }
+                    cell.appendChild(span);
+                    row.appendChild(cell);
+                });
+                grid.appendChild(row);
+            });
+
+            panel.appendChild(grid);
+            overlay.appendChild(panel);
+            document.body.appendChild(overlay);
+        }
+
         // ========== COPY INSTALL ==========
         function cpI(){
             navigator.clipboard.writeText('Read https://github.com/degenpepe7/agdp-dashboard and follow the instructions');
@@ -3060,5 +3445,13 @@
             setTimeout(()=>{e.style.borderColor='';e.style.color=''},1500);
         }
     </script>
+
+    <!-- Compare Bar (floating bottom) -->
+    <div class="compare-bar" id="compareBar">
+        <span style="font-size:0.75rem;color:var(--sub);font-weight:600">⚖ Compare:</span>
+        <div class="compare-avatars" id="compareChips"></div>
+        <button class="compare-go" id="compareGoBtn" onclick="showCompare()" disabled>Compare Side-by-Side</button>
+        <button class="compare-clear" onclick="clearCompare()">Clear</button>
+    </div>
 </body>
 </html>
