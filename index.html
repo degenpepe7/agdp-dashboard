@@ -954,6 +954,32 @@
     .eff-label { color: var(--muted); font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.06em; }
     .eff-value { font-weight: 700; }
 
+    /* ===== CATEGORY PERFORMANCE CARDS ===== */
+    .cat-perf-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+        transition: border-color 0.2s, transform 0.2s;
+        cursor: pointer;
+    }
+    .cat-perf-card:hover { border-color: rgba(34,211,238,0.3); transform: translateY(-2px); }
+    .cat-perf-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .cat-perf-name { font-size: 0.8125rem; font-weight: 700; color: var(--text); }
+    .cat-perf-count { font-size: 0.6875rem; color: var(--muted); background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 100px; }
+    .cat-perf-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+    .cat-perf-metric { }
+    .cat-perf-label { font-size: 0.625rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .cat-perf-val { font-size: 0.875rem; font-weight: 600; }
+    .cat-perf-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+    .cat-perf-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+    @media (max-width: 640px) {
+        #catPerfGrid { grid-template-columns: 1fr 1fr; gap: 8px; }
+        .cat-perf-card { padding: 10px 12px; }
+        .cat-perf-name { font-size: 0.75rem; }
+        .cat-perf-val { font-size: 0.8125rem; }
+    }
+
     /* ===== TRENDING SECTION ===== */
     .trending-strip {
         display: flex;
@@ -1523,6 +1549,12 @@
             <div class="rev-dist-title">⚙️ Jobs Distribution — Top 5 Agents</div>
             <div class="rev-dist-bar" id="jobsDistBar"></div>
             <div class="rev-dist-legend" id="jobsDistLegend"></div>
+        </div>
+
+        <!-- Category Performance Section -->
+        <div id="catPerf" style="display:none;margin-top:16px">
+            <div style="font-size:0.9375rem;font-weight:700;color:var(--text);margin-bottom:12px">📊 Category Performance</div>
+            <div id="catPerfGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
         </div>
 
         <!-- Trending Section -->
@@ -2249,6 +2281,7 @@
             // Render distribution bars
             renderRevDist();
             renderJobsDist();
+            renderCatPerf();
 
             // Render trending section
             renderTrending();
@@ -2456,6 +2489,82 @@
             }
 
             document.getElementById('jobsDist').style.display = 'block';
+        }
+
+        // ========== CATEGORY PERFORMANCE ==========
+        function renderCatPerf() {
+            const container = document.getElementById('catPerf');
+            const grid = document.getElementById('catPerfGrid');
+            if (!A.length) { container.style.display = 'none'; return; }
+
+            const cats = {};
+            const catEmojis = { ON_CHAIN: '⛓️', INFORMATION: '📡', ENTERTAINMENT: '🎭', CREATIVE: '🎨', PRODUCTIVITY: '⚙️', OTHER: '🔮' };
+            const catColors = { ON_CHAIN: 'var(--neon)', INFORMATION: 'var(--accent2)', ENTERTAINMENT: 'var(--pink)', CREATIVE: 'var(--gold)', PRODUCTIVITY: 'var(--green)', OTHER: 'var(--sub)' };
+
+            A.forEach(a => {
+                const c = a.category || 'OTHER';
+                if (!cats[c]) cats[c] = { agents: [], rev: 0, jobs: 0, online: 0, graduated: 0, buyers: 0, successSum: 0, successCount: 0 };
+                cats[c].agents.push(a);
+                cats[c].rev += getRev(a);
+                cats[c].jobs += gi(a, 'successfulJobCount');
+                cats[c].buyers += (a.uniqueBuyerCount || a.metrics?.uniqueBuyerCount || 0);
+                if (a.metrics?.isOnline || a.isOnline) cats[c].online++;
+                if (a.hasGraduated) cats[c].graduated++;
+                const sr = gv(a, 'successRate');
+                if (sr > 0) { cats[c].successSum += sr; cats[c].successCount++; }
+            });
+
+            const totalRev = A.reduce((s, a) => s + getRev(a), 0) || 1;
+            const entries = Object.entries(cats).sort((a, b) => b[1].rev - a[1].rev);
+
+            grid.textContent = '';
+            entries.forEach(([name, c]) => {
+                const card = document.createElement('div');
+                card.className = 'cat-perf-card';
+                card.onclick = () => {
+                    filterCat = filterCat === name ? '' : name;
+                    document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('on', b.dataset.cat === filterCat));
+                    render();
+                    syncHashState();
+                };
+
+                const emoji = catEmojis[name] || '🔮';
+                const color = catColors[name] || 'var(--sub)';
+                const avgSuccess = c.successCount > 0 ? (c.successSum / c.successCount).toFixed(0) : '—';
+                const revStr = c.rev >= 1000000 ? '$' + (c.rev/1000000).toFixed(1) + 'M' : c.rev >= 1000 ? '$' + (c.rev/1000).toFixed(1) + 'K' : '$' + c.rev.toFixed(0);
+                const jobsStr = c.jobs >= 1000000 ? (c.jobs/1000000).toFixed(1) + 'M' : c.jobs >= 1000 ? (c.jobs/1000).toFixed(1) + 'K' : c.jobs.toString();
+                const revPct = (c.rev / totalRev * 100);
+
+                card.innerHTML = `
+                    <div class="cat-perf-header">
+                        <span class="cat-perf-name">${emoji} ${name.replace(/_/g,' ')}</span>
+                        <span class="cat-perf-count">${c.agents.length} agent${c.agents.length!==1?'s':''}</span>
+                    </div>
+                    <div class="cat-perf-metrics">
+                        <div class="cat-perf-metric">
+                            <div class="cat-perf-label">Revenue</div>
+                            <div class="cat-perf-val" style="color:var(--green)">${revStr}</div>
+                        </div>
+                        <div class="cat-perf-metric">
+                            <div class="cat-perf-label">Jobs</div>
+                            <div class="cat-perf-val" style="color:var(--neon)">${jobsStr}</div>
+                        </div>
+                        <div class="cat-perf-metric">
+                            <div class="cat-perf-label">Online</div>
+                            <div class="cat-perf-val" style="color:${c.online>0?'var(--green)':'var(--muted)'}">${c.online}/${c.agents.length}</div>
+                        </div>
+                        <div class="cat-perf-metric">
+                            <div class="cat-perf-label">Avg Success</div>
+                            <div class="cat-perf-val" style="color:var(--gold)">${avgSuccess}%</div>
+                        </div>
+                    </div>
+                    <div class="cat-perf-bar"><div class="cat-perf-bar-fill" style="width:${revPct.toFixed(1)}%;background:${color}"></div></div>
+                `;
+                card.title = `${name}: ${revPct.toFixed(1)}% of total revenue · ${c.buyers} unique buyers · ${c.graduated} graduated`;
+                grid.appendChild(card);
+            });
+
+            container.style.display = 'block';
         }
 
         // ========== TRENDING SECTION ==========
